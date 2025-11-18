@@ -244,6 +244,81 @@ $pageTitle = 'QR Code Manager - Dashboard';
         </div>
     </div>
 
+    <!-- QR Preview Modal -->
+    <div id="qrPreviewModal" class="modal">
+        <div class="modal-content qr-preview-modal">
+            <button class="modal-close" id="closePreviewModal">✕</button>
+
+            <div class="qr-preview-layout">
+                <div class="qr-preview-image">
+                    <img id="previewModalImage" src="" alt="QR Code">
+                </div>
+
+                <div class="qr-preview-details">
+                    <h2 id="previewModalTitle"></h2>
+
+                    <div class="detail-group">
+                        <label>Short Code:</label>
+                        <div class="detail-value">
+                            <code id="previewModalCode" class="qr-code-large"></code>
+                            <button class="btn-copy-inline" id="previewCopyCode" title="Copy code">📋</button>
+                        </div>
+                    </div>
+
+                    <div class="detail-group">
+                        <label>Short URL:</label>
+                        <div class="detail-value">
+                            <code id="previewModalUrl"></code>
+                            <button class="btn-copy-inline" id="previewCopyUrl" title="Copy URL">📋</button>
+                        </div>
+                    </div>
+
+                    <div class="detail-group">
+                        <label>Destination:</label>
+                        <div class="detail-value">
+                            <a id="previewModalDestination" href="" target="_blank" rel="noopener noreferrer"></a>
+                        </div>
+                    </div>
+
+                    <div class="detail-group" id="previewDescriptionGroup" style="display: none;">
+                        <label>Description:</label>
+                        <div class="detail-value" id="previewModalDescription"></div>
+                    </div>
+
+                    <div class="detail-group" id="previewTagsGroup" style="display: none;">
+                        <label>Tags:</label>
+                        <div class="detail-value">
+                            <div id="previewModalTags" class="tags-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="detail-stats">
+                        <div class="stat-box">
+                            <div class="stat-box-value" id="previewModalClicks">0</div>
+                            <div class="stat-box-label">Clicks</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-value" id="previewModalCreated"></div>
+                            <div class="stat-box-label">Created</div>
+                        </div>
+                    </div>
+
+                    <div class="preview-modal-actions">
+                        <a id="previewEditBtn" href="" class="btn btn-secondary">
+                            ✏️ Edit
+                        </a>
+                        <a id="previewDownloadBtn" href="" download class="btn btn-primary">
+                            ⬇️ Download
+                        </a>
+                        <button id="previewDeleteBtn" class="btn btn-danger">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="modal">
         <div class="modal-content">

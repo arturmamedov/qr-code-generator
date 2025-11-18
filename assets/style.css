@@ -1006,6 +1006,168 @@ small {
     flex: 1;
 }
 
+/* QR Preview Modal */
+.qr-preview-modal {
+    max-width: 900px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.modal-close {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    z-index: 10;
+}
+
+.modal-close:hover {
+    background: var(--danger-color);
+    color: white;
+    transform: rotate(90deg);
+}
+
+.qr-preview-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 0;
+}
+
+.qr-preview-image {
+    background: var(--gray-50);
+    padding: var(--spacing-2xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid var(--gray-200);
+}
+
+.qr-preview-image img {
+    max-width: 100%;
+    width: 350px;
+    height: auto;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.qr-preview-details {
+    padding: var(--spacing-2xl);
+}
+
+.qr-preview-details h2 {
+    margin-bottom: var(--spacing-xl);
+    color: var(--gray-900);
+}
+
+.detail-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.detail-group label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-500);
+    margin-bottom: var(--spacing-xs);
+    font-weight: 600;
+}
+
+.detail-value {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.detail-value code {
+    font-size: 1rem;
+}
+
+.detail-value a {
+    color: var(--primary-color);
+    word-break: break-all;
+}
+
+.btn-copy-inline {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.125rem;
+    padding: 0.25rem 0.5rem;
+    opacity: 0.5;
+    transition: opacity var(--transition-fast);
+}
+
+.btn-copy-inline:hover {
+    opacity: 1;
+}
+
+.tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+}
+
+.detail-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin: var(--spacing-xl) 0;
+    padding: var(--spacing-lg);
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+}
+
+.stat-box {
+    text-align: center;
+}
+
+.stat-box-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+    margin-bottom: var(--spacing-xs);
+}
+
+.stat-box-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray-600);
+}
+
+.preview-modal-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+}
+
+.preview-modal-actions .btn {
+    flex: 1;
+}
+
 /* Success Modal */
 .success-modal {
     text-align: center;
@@ -1120,6 +1282,35 @@ small {
         right: var(--spacing-md);
         left: var(--spacing-md);
         max-width: none;
+    }
+
+    /* QR Preview Modal - Mobile */
+    .qr-preview-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .qr-preview-image {
+        border-right: none;
+        border-bottom: 1px solid var(--gray-200);
+        padding: var(--spacing-lg);
+    }
+
+    .qr-preview-image img {
+        width: 250px;
+    }
+
+    .pagination-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pagination-controls {
+        justify-content: center;
+    }
+
+    .page-numbers {
+        flex-wrap: wrap;
+        justify-content: center;
     }
 }
 

@@ -577,6 +577,9 @@ function initDashboardPage() {
 
     // Initialize pagination
     initPagination();
+
+    // Initialize QR preview modal
+    initQrPreviewModal();
 }
 
 // ============================================
@@ -1009,6 +1012,143 @@ function addEllipsis(container) {
 function resetPagination() {
     paginationState.currentPage = 1;
     updatePagination();
+}
+
+// ============================================
+// QR Preview Modal
+// ============================================
+
+/**
+ * Initialize QR preview modal
+ */
+function initQrPreviewModal() {
+    const modal = document.getElementById('qrPreviewModal');
+    const closeBtn = document.getElementById('closePreviewModal');
+
+    if (!modal) return;
+
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            hideModal('qrPreviewModal');
+        });
+    }
+
+    // Make QR preview images clickable
+    const qrPreviews = document.querySelectorAll('.qr-preview');
+    qrPreviews.forEach(img => {
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', () => {
+            const row = img.closest('tr');
+            if (row) {
+                showQrPreview(row);
+            }
+        });
+    });
+
+    // ESC key to close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            hideModal('qrPreviewModal');
+        }
+    });
+}
+
+/**
+ * Show QR preview modal with data from row
+ */
+function showQrPreview(row) {
+    const qrId = row.dataset.id;
+    const code = row.dataset.code.toUpperCase();
+    const title = row.querySelector('.title-cell strong')?.textContent || '';
+    const description = row.querySelector('.title-cell small')?.textContent || '';
+    const destination = row.dataset.destination;
+    const clicks = row.dataset.clicks;
+    const created = row.dataset.created;
+    const tags = row.dataset.tags;
+
+    // Populate modal
+    document.getElementById('previewModalImage').src = `generated/${code}.png`;
+    document.getElementById('previewModalTitle').textContent = title;
+    document.getElementById('previewModalCode').textContent = code;
+
+    const qrUrl = window.location.origin + '/' + code;
+    document.getElementById('previewModalUrl').textContent = qrUrl;
+
+    const destinationLink = document.getElementById('previewModalDestination');
+    // Get actual destination from row
+    const actualDestUrl = row.querySelector('.destination-url')?.href || '';
+    destinationLink.href = actualDestUrl;
+    destinationLink.textContent = actualDestUrl;
+
+    // Description (show/hide)
+    const descGroup = document.getElementById('previewDescriptionGroup');
+    if (description && description.trim()) {
+        document.getElementById('previewModalDescription').textContent = description;
+        descGroup.style.display = 'block';
+    } else {
+        descGroup.style.display = 'none';
+    }
+
+    // Tags (show/hide)
+    const tagsGroup = document.getElementById('previewTagsGroup');
+    const tagsContainer = document.getElementById('previewModalTags');
+    if (tags && tags.trim()) {
+        tagsContainer.innerHTML = '';
+        tags.split(',').forEach(tag => {
+            const tagEl = document.createElement('span');
+            tagEl.className = 'tag';
+            tagEl.textContent = tag.trim();
+            tagsContainer.appendChild(tagEl);
+        });
+        tagsGroup.style.display = 'block';
+    } else {
+        tagsGroup.style.display = 'none';
+    }
+
+    // Stats
+    document.getElementById('previewModalClicks').textContent = parseInt(clicks).toLocaleString();
+    document.getElementById('previewModalCreated').textContent = formatDateShort(created);
+
+    // Action buttons
+    document.getElementById('previewEditBtn').href = `edit.php?id=${qrId}`;
+    document.getElementById('previewDownloadBtn').href = `generated/${code}.png`;
+    document.getElementById('previewDownloadBtn').download = `qr-${code}.png`;
+
+    // Copy buttons
+    document.getElementById('previewCopyCode').onclick = () => copyToClipboard(code);
+    document.getElementById('previewCopyUrl').onclick = () => copyToClipboard(qrUrl);
+
+    // Delete button
+    document.getElementById('previewDeleteBtn').onclick = () => {
+        hideModal('qrPreviewModal');
+        // Trigger existing delete modal
+        document.getElementById('deleteCode').textContent = code;
+        showModal('deleteModal');
+        const confirmBtn = document.getElementById('confirmDelete');
+        confirmBtn.onclick = () => handleDelete(qrId);
+    };
+
+    // Show modal
+    showModal('qrPreviewModal');
+}
+
+/**
+ * Format date for preview (shorter version)
+ */
+function formatDateShort(datetime) {
+    if (!datetime) return '-';
+    const date = new Date(datetime);
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
 }
 
 /**
