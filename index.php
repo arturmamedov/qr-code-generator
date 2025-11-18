@@ -215,6 +215,31 @@ $pageTitle = 'QR Code Manager - Dashboard';
                         </tr>
                     </tbody>
                 </table>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">Showing 1-25 of <?php echo $totalQrCodes; ?></span>
+                    </div>
+                    <div class="pagination-controls">
+                        <button id="prevPage" class="btn-page" disabled>
+                            ← Previous
+                        </button>
+                        <div id="pageNumbers" class="page-numbers"></div>
+                        <button id="nextPage" class="btn-page">
+                            Next →
+                        </button>
+                    </div>
+                    <div class="pagination-settings">
+                        <label for="pageSize">Per page:</label>
+                        <select id="pageSize" class="page-size-select">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
             <?php endif; ?>
         </div>
     </div>

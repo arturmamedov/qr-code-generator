@@ -574,6 +574,9 @@ function initDashboardPage() {
 
     // Initialize sorting functionality
     initSorting();
+
+    // Initialize pagination
+    initPagination();
 }
 
 // ============================================
@@ -653,6 +656,11 @@ function initSearch() {
             noResultsRow.style.display = '';
         } else {
             noResultsRow.style.display = 'none';
+        }
+
+        // Update pagination when search changes
+        if (typeof resetPagination === 'function') {
+            resetPagination();
         }
     }
 
@@ -790,6 +798,217 @@ function initSorting() {
             sortTable(column, direction);
         });
     });
+}
+
+// ============================================
+// Pagination
+// ============================================
+
+let paginationState = {
+    currentPage: 1,
+    pageSize: 25,
+    totalItems: 0
+};
+
+/**
+ * Initialize pagination
+ */
+function initPagination() {
+    const tableBody = document.getElementById('qrTableBody');
+    const pageSizeSelect = document.getElementById('pageSize');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    if (!tableBody) return;
+
+    // Restore page size from sessionStorage
+    const savedPageSize = sessionStorage.getItem('pageSize');
+    if (savedPageSize) {
+        paginationState.pageSize = parseInt(savedPageSize);
+        if (pageSizeSelect) {
+            pageSizeSelect.value = savedPageSize;
+        }
+    }
+
+    // Page size change handler
+    if (pageSizeSelect) {
+        pageSizeSelect.addEventListener('change', () => {
+            paginationState.pageSize = parseInt(pageSizeSelect.value);
+            paginationState.currentPage = 1;
+            sessionStorage.setItem('pageSize', paginationState.pageSize);
+            updatePagination();
+        });
+    }
+
+    // Previous button
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (paginationState.currentPage > 1) {
+                paginationState.currentPage--;
+                updatePagination();
+            }
+        });
+    }
+
+    // Next button
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            const totalPages = Math.ceil(paginationState.totalItems / paginationState.pageSize);
+            if (paginationState.currentPage < totalPages) {
+                paginationState.currentPage++;
+                updatePagination();
+            }
+        });
+    }
+
+    // Initial pagination
+    updatePagination();
+}
+
+/**
+ * Update pagination display and visible rows
+ */
+function updatePagination() {
+    const tableBody = document.getElementById('qrTableBody');
+    const paginationInfo = document.getElementById('paginationInfo');
+    const pageNumbersContainer = document.getElementById('pageNumbers');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+
+    if (!tableBody) return;
+
+    // Get all visible rows (after search/filter)
+    const allRows = Array.from(tableBody.querySelectorAll('tr')).filter(row => {
+        return row.id !== 'noResultsRow' && row.style.display !== 'none';
+    });
+
+    paginationState.totalItems = allRows.length;
+    const totalPages = Math.ceil(paginationState.totalItems / paginationState.pageSize);
+
+    // Ensure current page is valid
+    if (paginationState.currentPage > totalPages && totalPages > 0) {
+        paginationState.currentPage = totalPages;
+    }
+    if (paginationState.currentPage < 1) {
+        paginationState.currentPage = 1;
+    }
+
+    const startIdx = (paginationState.currentPage - 1) * paginationState.pageSize;
+    const endIdx = startIdx + paginationState.pageSize;
+
+    // Show/hide rows based on current page
+    allRows.forEach((row, idx) => {
+        if (idx >= startIdx && idx < endIdx) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Update pagination info
+    if (paginationInfo) {
+        const showingStart = paginationState.totalItems > 0 ? startIdx + 1 : 0;
+        const showingEnd = Math.min(endIdx, paginationState.totalItems);
+        paginationInfo.textContent = `Showing ${showingStart}-${showingEnd} of ${paginationState.totalItems}`;
+    }
+
+    // Update prev/next buttons
+    if (prevBtn) {
+        prevBtn.disabled = paginationState.currentPage <= 1;
+    }
+    if (nextBtn) {
+        nextBtn.disabled = paginationState.currentPage >= totalPages;
+    }
+
+    // Update page numbers
+    if (pageNumbersContainer) {
+        renderPageNumbers(pageNumbersContainer, paginationState.currentPage, totalPages);
+    }
+}
+
+/**
+ * Render page number buttons
+ */
+function renderPageNumbers(container, currentPage, totalPages) {
+    container.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    const maxButtons = 7;
+    let startPage, endPage;
+
+    if (totalPages <= maxButtons) {
+        // Show all pages
+        startPage = 1;
+        endPage = totalPages;
+    } else {
+        // Smart pagination with ellipsis
+        const halfButtons = Math.floor(maxButtons / 2);
+
+        if (currentPage <= halfButtons) {
+            startPage = 1;
+            endPage = maxButtons - 1;
+        } else if (currentPage >= totalPages - halfButtons) {
+            startPage = totalPages - maxButtons + 2;
+            endPage = totalPages;
+        } else {
+            startPage = currentPage - halfButtons + 1;
+            endPage = currentPage + halfButtons - 1;
+        }
+    }
+
+    // First page button
+    if (startPage > 1) {
+        addPageButton(container, 1, currentPage);
+        if (startPage > 2) {
+            addEllipsis(container);
+        }
+    }
+
+    // Page number buttons
+    for (let i = startPage; i <= endPage; i++) {
+        addPageButton(container, i, currentPage);
+    }
+
+    // Last page button
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            addEllipsis(container);
+        }
+        addPageButton(container, totalPages, currentPage);
+    }
+}
+
+/**
+ * Add page button
+ */
+function addPageButton(container, pageNum, currentPage) {
+    const button = document.createElement('button');
+    button.className = 'page-number' + (pageNum === currentPage ? ' active' : '');
+    button.textContent = pageNum;
+    button.addEventListener('click', () => {
+        paginationState.currentPage = pageNum;
+        updatePagination();
+    });
+    container.appendChild(button);
+}
+
+/**
+ * Add ellipsis
+ */
+function addEllipsis(container) {
+    const ellipsis = document.createElement('span');
+    ellipsis.className = 'page-number ellipsis';
+    ellipsis.textContent = '...';
+    container.appendChild(ellipsis);
+}
+
+/**
+ * Reset pagination to first page (used by search)
+ */
+function resetPagination() {
+    paginationState.currentPage = 1;
+    updatePagination();
 }
 
 /**

@@ -536,6 +536,113 @@ small {
 }
 
 /* ============================================
+   Pagination
+   ============================================ */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-xl) var(--spacing-lg);
+    border-top: 1px solid var(--gray-200);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.pagination-info {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.btn-page {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    color: var(--gray-700);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-page:hover:not(:disabled) {
+    background: var(--gray-50);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-page:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-numbers {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.page-number {
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    color: var(--gray-700);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.page-number:hover {
+    background: var(--gray-50);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.page-number.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+
+.page-number.ellipsis {
+    border: none;
+    cursor: default;
+    pointer-events: none;
+}
+
+.pagination-settings {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.875rem;
+    color: var(--gray-700);
+}
+
+.page-size-select {
+    padding: 0.5rem;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    background: white;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.page-size-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* ============================================
    Empty State
    ============================================ */
 .empty-state {
