@@ -1,0 +1,29 @@
+# TEMPORARY Simple .htaccess for Testing
+# NO AUTHENTICATION - Use only for initial testing!
+# Replace with the full .htaccess once everything works
+
+RewriteEngine On
+RewriteBase /
+
+# Block access to sensitive files
+<Files "config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "config.example.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Clean URL rewriting
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/(index|create|edit|api|save-image|diagnostic)\.php
+RewriteRule ^([A-Za-z0-9]{6,10})$ r.php?c=$1 [L,QSA]
+
+# Prevent directory browsing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
