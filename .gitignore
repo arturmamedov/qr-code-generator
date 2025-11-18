@@ -1,0 +1,33 @@
+# Configuration files (contain sensitive data)
+config.php
+
+# Generated QR code images
+/generated/*.png
+/generated/*.svg
+/generated/*.jpg
+/generated/*.jpeg
+
+# Keep the directory but ignore contents
+!generated/.gitkeep
+
+# Error logs
+/logs/*.log
+!logs/.gitkeep
+
+# .htpasswd file (contains hashed passwords)
+.htpasswd
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
