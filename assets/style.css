@@ -404,6 +404,45 @@ small {
     letter-spacing: 0.05em;
 }
 
+.qr-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--transition-fast);
+    position: relative;
+}
+
+.qr-table th.sortable:hover {
+    background: var(--gray-200);
+}
+
+.qr-table th.sortable.active {
+    color: var(--primary-color);
+}
+
+.sort-indicator {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    opacity: 0.3;
+    transition: opacity var(--transition-fast);
+}
+
+.sort-indicator::before {
+    content: '⬍';
+}
+
+.sortable.active .sort-indicator {
+    opacity: 1;
+}
+
+.sortable.active.asc .sort-indicator::before {
+    content: '▲';
+}
+
+.sortable.active.desc .sort-indicator::before {
+    content: '▼';
+}
+
 .qr-table td {
     padding: 1rem;
     border-top: 1px solid var(--gray-200);

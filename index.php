@@ -90,11 +90,19 @@ $pageTitle = 'QR Code Manager - Dashboard';
                     <thead>
                         <tr>
                             <th>Preview</th>
-                            <th>Title</th>
-                            <th>Code</th>
+                            <th class="sortable" data-sort="title">
+                                Title <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="code">
+                                Code <span class="sort-indicator"></span>
+                            </th>
                             <th>Destination</th>
-                            <th>Clicks</th>
-                            <th>Created</th>
+                            <th class="sortable" data-sort="clicks">
+                                Clicks <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="created">
+                                Created <span class="sort-indicator"></span>
+                            </th>
                             <th>Actions</th>
                         </tr>
                     </thead>

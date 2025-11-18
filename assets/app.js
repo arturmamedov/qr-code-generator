@@ -571,6 +571,9 @@ function initDashboardPage() {
 
     // Initialize search functionality
     initSearch();
+
+    // Initialize sorting functionality
+    initSorting();
 }
 
 // ============================================
@@ -671,6 +674,121 @@ function initSearch() {
         if (e.key === 'Escape') {
             clearSearch();
         }
+    });
+}
+
+// ============================================
+// Column Sorting
+// ============================================
+
+/**
+ * Initialize column sorting
+ */
+function initSorting() {
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    const tableBody = document.getElementById('qrTableBody');
+
+    if (!sortableHeaders.length || !tableBody) return;
+
+    // Current sort state
+    let currentSort = {
+        column: sessionStorage.getItem('sortColumn') || null,
+        direction: sessionStorage.getItem('sortDirection') || 'asc'
+    };
+
+    // Restore sort state from session
+    if (currentSort.column) {
+        applySortState(currentSort.column, currentSort.direction);
+        sortTable(currentSort.column, currentSort.direction);
+    }
+
+    /**
+     * Apply visual sort state to headers
+     */
+    function applySortState(column, direction) {
+        sortableHeaders.forEach(header => {
+            header.classList.remove('active', 'asc', 'desc');
+            if (header.dataset.sort === column) {
+                header.classList.add('active', direction);
+            }
+        });
+    }
+
+    /**
+     * Sort table by column
+     */
+    function sortTable(column, direction) {
+        const rows = Array.from(tableBody.querySelectorAll('tr')).filter(row => row.id !== 'noResultsRow');
+
+        rows.sort((a, b) => {
+            let aValue, bValue;
+
+            switch (column) {
+                case 'title':
+                    aValue = a.dataset.title || '';
+                    bValue = b.dataset.title || '';
+                    break;
+                case 'code':
+                    aValue = a.dataset.code || '';
+                    bValue = b.dataset.code || '';
+                    break;
+                case 'clicks':
+                    aValue = parseInt(a.dataset.clicks || 0);
+                    bValue = parseInt(b.dataset.clicks || 0);
+                    break;
+                case 'created':
+                    aValue = new Date(a.dataset.created || 0);
+                    bValue = new Date(b.dataset.created || 0);
+                    break;
+                default:
+                    return 0;
+            }
+
+            // Compare values
+            let comparison = 0;
+            if (typeof aValue === 'number') {
+                comparison = aValue - bValue;
+            } else if (aValue instanceof Date) {
+                comparison = aValue.getTime() - bValue.getTime();
+            } else {
+                comparison = aValue.localeCompare(bValue);
+            }
+
+            return direction === 'asc' ? comparison : -comparison;
+        });
+
+        // Re-append rows in sorted order
+        rows.forEach(row => tableBody.appendChild(row));
+
+        // Keep no results row at the end
+        const noResultsRow = document.getElementById('noResultsRow');
+        if (noResultsRow) {
+            tableBody.appendChild(noResultsRow);
+        }
+    }
+
+    /**
+     * Handle header click
+     */
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const column = header.dataset.sort;
+
+            // Toggle direction if same column, else default to ascending
+            let direction = 'asc';
+            if (currentSort.column === column && currentSort.direction === 'asc') {
+                direction = 'desc';
+            }
+
+            // Update state
+            currentSort = { column, direction };
+            sessionStorage.setItem('sortColumn', column);
+            sessionStorage.setItem('sortDirection', direction);
+
+            // Apply sort
+            applySortState(column, direction);
+            sortTable(column, direction);
+        });
     });
 }
 
