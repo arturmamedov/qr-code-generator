@@ -60,6 +60,22 @@ $pageTitle = 'QR Code Manager - Dashboard';
             </div>
         </div>
 
+        <!-- Search & Filter -->
+        <?php if (!empty($qrCodes)): ?>
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text"
+                       id="searchInput"
+                       class="search-input"
+                       placeholder="🔍 Search by title, code, destination, or tags...">
+                <button id="clearSearch" class="btn-clear-search" style="display: none;">✕</button>
+            </div>
+            <div class="search-results-info">
+                <span id="resultsCount">Showing all <?php echo $totalQrCodes; ?> QR codes</span>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- QR Codes Table -->
         <div class="table-container">
             <?php if (empty($qrCodes)): ?>
@@ -82,9 +98,15 @@ $pageTitle = 'QR Code Manager - Dashboard';
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="qrTableBody">
                         <?php foreach ($qrCodes as $qr): ?>
-                            <tr data-id="<?php echo $qr['id']; ?>">
+                            <tr data-id="<?php echo $qr['id']; ?>"
+                                data-title="<?php echo htmlspecialchars(strtolower($qr['title'])); ?>"
+                                data-code="<?php echo strtolower($qr['code']); ?>"
+                                data-destination="<?php echo htmlspecialchars(strtolower($qr['destination_url'])); ?>"
+                                data-tags="<?php echo htmlspecialchars(strtolower($qr['tags'])); ?>"
+                                data-clicks="<?php echo $qr['click_count']; ?>"
+                                data-created="<?php echo $qr['created_at']; ?>">
                                 <!-- Preview -->
                                 <td class="preview-cell">
                                     <?php
@@ -173,6 +195,16 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                 </td>
                             </tr>
                         <?php endforeach; ?>
+                        <!-- No Results Row (hidden by default, shown by JS when search has no matches) -->
+                        <tr id="noResultsRow" style="display: none;">
+                            <td colspan="7" class="no-results-cell">
+                                <div class="empty-state">
+                                    <div class="empty-icon">🔍</div>
+                                    <h3>No QR codes found</h3>
+                                    <p>Try adjusting your search terms</p>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             <?php endif; ?>

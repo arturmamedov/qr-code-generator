@@ -568,6 +568,110 @@ function initDashboardPage() {
             copyToClipboard(url);
         });
     });
+
+    // Initialize search functionality
+    initSearch();
+}
+
+// ============================================
+// Search & Filter
+// ============================================
+
+/**
+ * Initialize search functionality
+ */
+function initSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const clearButton = document.getElementById('clearSearch');
+    const resultsCount = document.getElementById('resultsCount');
+    const tableBody = document.getElementById('qrTableBody');
+    const noResultsRow = document.getElementById('noResultsRow');
+
+    if (!searchInput || !tableBody) return;
+
+    // Get all data rows (excluding the no results row)
+    const getAllRows = () => {
+        return Array.from(tableBody.querySelectorAll('tr')).filter(row => row.id !== 'noResultsRow');
+    };
+
+    const totalRows = getAllRows().length;
+
+    /**
+     * Perform search/filter
+     */
+    function performSearch() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const rows = getAllRows();
+
+        // Show clear button if search has text
+        if (searchTerm) {
+            clearButton.style.display = 'flex';
+        } else {
+            clearButton.style.display = 'none';
+        }
+
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            if (!searchTerm) {
+                // No search term - show all
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                // Check if row matches search term
+                const title = row.dataset.title || '';
+                const code = row.dataset.code || '';
+                const destination = row.dataset.destination || '';
+                const tags = row.dataset.tags || '';
+
+                const matches = title.includes(searchTerm) ||
+                               code.includes(searchTerm) ||
+                               destination.includes(searchTerm) ||
+                               tags.includes(searchTerm);
+
+                if (matches) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+
+        // Update results count
+        if (searchTerm) {
+            resultsCount.textContent = `Found ${visibleCount} of ${totalRows} QR code${visibleCount !== 1 ? 's' : ''}`;
+        } else {
+            resultsCount.textContent = `Showing all ${totalRows} QR code${totalRows !== 1 ? 's' : ''}`;
+        }
+
+        // Show/hide no results row
+        if (visibleCount === 0 && searchTerm) {
+            noResultsRow.style.display = '';
+        } else {
+            noResultsRow.style.display = 'none';
+        }
+    }
+
+    /**
+     * Clear search
+     */
+    function clearSearch() {
+        searchInput.value = '';
+        searchInput.focus();
+        performSearch();
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', performSearch);
+    clearButton.addEventListener('click', clearSearch);
+
+    // Allow ESC key to clear search
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            clearSearch();
+        }
+    });
 }
 
 /**
