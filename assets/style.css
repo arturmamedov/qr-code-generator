@@ -471,11 +471,23 @@ small {
     font-size: 1.125rem;
     padding: 0.25rem;
     opacity: 0.6;
-    transition: opacity var(--transition-fast);
+    transition: all var(--transition-fast);
 }
 
 .btn-copy:hover {
     opacity: 1;
+}
+
+.btn-copy.copied {
+    opacity: 1;
+    color: var(--success-color);
+    transform: scale(1.2);
+}
+
+.btn-copy-inline.copied {
+    opacity: 1;
+    color: var(--success-color);
+    transform: scale(1.3);
 }
 
 /* ============================================

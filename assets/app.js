@@ -66,24 +66,71 @@ async function apiCall(action, data = {}) {
 }
 
 /**
- * Copy text to clipboard
+ * Copy text to clipboard with enhanced feedback
  */
-async function copyToClipboard(text) {
+async function copyToClipboard(text, buttonElement = null) {
     try {
         await navigator.clipboard.writeText(text);
-        showToast('Copied to clipboard!', 'success');
+
+        // Visual feedback on button if provided
+        if (buttonElement) {
+            showCopyFeedback(buttonElement);
+        }
+
+        showToast('✓ Copied to clipboard!', 'success');
+        return true;
     } catch (error) {
         // Fallback for older browsers
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showToast('Copied to clipboard!', 'success');
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            if (successful) {
+                if (buttonElement) {
+                    showCopyFeedback(buttonElement);
+                }
+                showToast('✓ Copied to clipboard!', 'success');
+                return true;
+            } else {
+                showToast('Failed to copy', 'error');
+                return false;
+            }
+        } catch (err) {
+            console.error('Copy failed:', err);
+            showToast('Copy not supported in this browser', 'error');
+            return false;
+        }
     }
+}
+
+/**
+ * Show visual feedback on copy button
+ */
+function showCopyFeedback(button) {
+    if (!button) return;
+
+    // Store original content
+    const originalContent = button.innerHTML;
+    const originalClass = button.className;
+
+    // Show success state
+    button.innerHTML = '✓';
+    button.classList.add('copied');
+
+    // Reset after delay
+    setTimeout(() => {
+        button.innerHTML = originalContent;
+        button.className = originalClass;
+    }, 2000);
 }
 
 // ============================================
@@ -563,9 +610,10 @@ function initDashboardPage() {
     // Copy buttons
     const copyButtons = document.querySelectorAll('.btn-copy');
     copyButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering row click
             const url = btn.dataset.url;
-            copyToClipboard(url);
+            copyToClipboard(url, btn);
         });
     });
 
@@ -1116,8 +1164,16 @@ function showQrPreview(row) {
     document.getElementById('previewDownloadBtn').download = `qr-${code}.png`;
 
     // Copy buttons
-    document.getElementById('previewCopyCode').onclick = () => copyToClipboard(code);
-    document.getElementById('previewCopyUrl').onclick = () => copyToClipboard(qrUrl);
+    const copyCodeBtn = document.getElementById('previewCopyCode');
+    const copyUrlBtn = document.getElementById('previewCopyUrl');
+    copyCodeBtn.onclick = (e) => {
+        e.preventDefault();
+        copyToClipboard(code, copyCodeBtn);
+    };
+    copyUrlBtn.onclick = (e) => {
+        e.preventDefault();
+        copyToClipboard(qrUrl, copyUrlBtn);
+    };
 
     // Delete button
     document.getElementById('previewDeleteBtn').onclick = () => {
