@@ -58,7 +58,66 @@ $pageTitle = 'QR Code Manager - Dashboard';
                     <div class="stat-label">Total Clicks</div>
                 </div>
             </div>
+
+            <?php if (!empty($qrCodes)):
+                // Calculate average clicks
+                $avgClicks = $totalQrCodes > 0 ? round($totalClicks / $totalQrCodes, 1) : 0;
+            ?>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo number_format($avgClicks, 1); ?></div>
+                    <div class="stat-label">Average Clicks</div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
+
+        <!-- Top Performers Widget -->
+        <?php if (!empty($qrCodes)):
+            // Get top 5 QR codes by clicks
+            $topQrCodes = $qrCodes;
+            usort($topQrCodes, function($a, $b) {
+                return $b['click_count'] - $a['click_count'];
+            });
+            $topQrCodes = array_slice($topQrCodes, 0, 5);
+
+            // Only show if at least one has clicks
+            $hasClicks = false;
+            foreach ($topQrCodes as $qr) {
+                if ($qr['click_count'] > 0) {
+                    $hasClicks = true;
+                    break;
+                }
+            }
+
+            if ($hasClicks):
+        ?>
+        <div class="top-performers-widget">
+            <h3>🏆 Top Performers</h3>
+            <div class="top-performers-list">
+                <?php foreach ($topQrCodes as $index => $qr):
+                    if ($qr['click_count'] > 0):
+                ?>
+                    <div class="top-performer-item">
+                        <div class="performer-rank"><?php echo $index + 1; ?></div>
+                        <div class="performer-info">
+                            <div class="performer-title"><?php echo htmlspecialchars($qr['title']); ?></div>
+                            <div class="performer-code"><?php echo $qr['code']; ?></div>
+                        </div>
+                        <div class="performer-clicks">
+                            <div class="clicks-value"><?php echo number_format($qr['click_count']); ?></div>
+                            <div class="clicks-label">clicks</div>
+                        </div>
+                    </div>
+                <?php
+                    endif;
+                endforeach; ?>
+            </div>
+        </div>
+        <?php
+            endif;
+        endif; ?>
 
         <!-- Search & Filter -->
         <?php if (!empty($qrCodes)): ?>

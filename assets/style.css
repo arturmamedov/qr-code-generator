@@ -273,6 +273,109 @@ small {
 }
 
 /* ============================================
+   Top Performers Widget
+   ============================================ */
+.top-performers-widget {
+    background: white;
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-2xl);
+}
+
+.top-performers-widget h3 {
+    margin-bottom: var(--spacing-lg);
+    font-size: 1.25rem;
+    color: var(--gray-900);
+}
+
+.top-performers-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.top-performer-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+}
+
+.top-performer-item:hover {
+    background: var(--gray-100);
+    transform: translateX(4px);
+}
+
+.performer-rank {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 1.125rem;
+    flex-shrink: 0;
+}
+
+.top-performer-item:nth-child(1) .performer-rank {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+}
+
+.top-performer-item:nth-child(2) .performer-rank {
+    background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
+}
+
+.top-performer-item:nth-child(3) .performer-rank {
+    background: linear-gradient(135deg, #CD7F32, #B8860B);
+}
+
+.performer-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.performer-title {
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.performer-code {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-family: 'Courier New', monospace;
+}
+
+.performer-clicks {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.clicks-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.clicks-label {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ============================================
    Buttons
    ============================================ */
 .btn {
