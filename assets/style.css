@@ -73,6 +73,7 @@ body {
     color: var(--gray-800);
     background: var(--gray-50);
     min-height: 100vh;
+    scroll-behavior: smooth;
 }
 
 /* ============================================
@@ -1332,6 +1333,129 @@ small {
 }
 
 /* ============================================
+   Focus States & Accessibility
+   ============================================ */
+*:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Skip to content link for screen readers */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--primary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    z-index: 100;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* ============================================
+   Loading States
+   ============================================ */
+.loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--gray-200) 25%,
+        var(--gray-100) 50%,
+        var(--gray-200) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* ============================================
+   Smooth Animations
+   ============================================ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Stagger animation for lists */
+.qr-table tbody tr {
+    animation: fadeIn 0.3s ease-out backwards;
+}
+
+.qr-table tbody tr:nth-child(1) { animation-delay: 0.05s; }
+.qr-table tbody tr:nth-child(2) { animation-delay: 0.1s; }
+.qr-table tbody tr:nth-child(3) { animation-delay: 0.15s; }
+.qr-table tbody tr:nth-child(4) { animation-delay: 0.2s; }
+.qr-table tbody tr:nth-child(5) { animation-delay: 0.25s; }
+
+/* Pulse animation for new items */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================
+   Enhanced Empty States
+   ============================================ */
+.empty-state {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* ============================================
    Responsive Design
    ============================================ */
 @media (max-width: 1024px) {
@@ -1436,5 +1560,79 @@ small {
 
     .download-buttons {
         flex-direction: column;
+    }
+
+    .preview-modal-actions {
+        flex-direction: column;
+    }
+
+    .preview-modal-actions .btn {
+        width: 100%;
+    }
+
+    /* Better touch targets on mobile */
+    .btn-action {
+        width: 44px;
+        height: 44px;
+    }
+
+    .btn-copy {
+        padding: 0.5rem;
+        font-size: 1.25rem;
+    }
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+    /* Hide interactive elements */
+    .btn,
+    button,
+    .modal,
+    .toast,
+    .search-section,
+    .pagination-container,
+    .action-buttons {
+        display: none !important;
+    }
+
+    /* Optimize for print */
+    body {
+        background: white;
+    }
+
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+
+    .qr-table {
+        page-break-inside: avoid;
+    }
+
+    .qr-table thead {
+        background: #f5f5f5;
+    }
+
+    /* Show full URLs in print */
+    .destination-url::after {
+        content: " (" attr(href) ")";
+        font-size: 0.75rem;
+        color: #666;
+    }
+}
+
+/* ============================================
+   Reduce Motion for Accessibility
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }

@@ -928,6 +928,12 @@ function updatePagination() {
 
     if (!tableBody) return;
 
+    // Smooth scroll to top of table on page change
+    const tableContainer = document.querySelector('.table-container');
+    if (tableContainer && paginationState.currentPage > 1) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     // Get all visible rows (after search/filter)
     const allRows = Array.from(tableBody.querySelectorAll('tr')).filter(row => {
         return row.id !== 'noResultsRow' && row.style.display !== 'none';
