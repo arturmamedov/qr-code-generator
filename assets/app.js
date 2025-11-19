@@ -1426,16 +1426,23 @@ function initSlugValidation(inputId, isEditMode = false) {
     const autoGenerateBtn = document.getElementById('autoGenerateBtn');
     const warningEl = document.getElementById('slugWarning');
 
-    // Double-click to edit in edit mode (slug starts disabled)
-    if (isEditMode && slugInput.disabled) {
+    // Double-click to edit in edit mode (slug starts locked/readonly)
+    if (isEditMode && slugInput.classList.contains('slug-locked')) {
+        // Double-click handler
         slugInput.addEventListener('dblclick', () => {
-            slugInput.disabled = false;
+            // Unlock the field
+            slugInput.classList.remove('slug-locked');
+            slugInput.removeAttribute('readonly');
             slugInput.focus();
             slugInput.select();
+
+            // Enable the auto-generate button
             if (autoGenerateBtn) {
                 autoGenerateBtn.disabled = false;
+                autoGenerateBtn.classList.remove('slug-btn-locked');
                 autoGenerateBtn.title = 'Auto-generate random code';
             }
+
             // Show visual feedback
             if (feedbackEl) {
                 feedbackEl.className = 'slug-feedback success';
@@ -1447,9 +1454,9 @@ function initSlugValidation(inputId, isEditMode = false) {
             }
         });
 
-        // Also allow single click to show instruction
+        // Single click to show instruction
         slugInput.addEventListener('click', (e) => {
-            if (slugInput.disabled && feedbackEl) {
+            if (slugInput.classList.contains('slug-locked') && feedbackEl) {
                 feedbackEl.className = 'slug-feedback';
                 feedbackEl.innerHTML = '💡 Double-click to edit this field';
                 setTimeout(() => {
