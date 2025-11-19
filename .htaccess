@@ -63,8 +63,9 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !^/(index|create|edit|api)\.php
 
 # Rewrite clean URLs to redirect handler
-# Example: /ABC123 -> /r.php?c=ABC123
-RewriteRule ^([A-Za-z0-9]{6,10})$ r.php?c=$1 [L,QSA]
+# Example: /ABC123 or /summer-sale -> /r.php?c=ABC123 or /r.php?c=summer-sale
+# Supports letters, numbers, hyphens, underscores (1-33 characters)
+RewriteRule ^([A-Za-z0-9_-]{1,33})$ r.php?c=$1 [L,QSA]
 
 # ============================================
 # PERFORMANCE & SECURITY HEADERS
