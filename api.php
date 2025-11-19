@@ -53,6 +53,10 @@ switch ($action) {
         handleResetClicks($input);
         break;
 
+    case 'check_slug_availability':
+        handleCheckSlugAvailability($input);
+        break;
+
     default:
         jsonResponse(false, null, 'Invalid action', 400);
 }
@@ -83,10 +87,31 @@ function handleCreate($input) {
     $description = sanitizeInput($input['description'] ?? '');
     $tags = sanitizeInput($input['tags'] ?? '');
 
-    // Generate unique code
-    $code = generateUniqueCode(QR_CODE_LENGTH);
-    if (!$code) {
-        jsonResponse(false, null, 'Failed to generate unique code. Please try again.', 500);
+    // Handle custom slug or auto-generate
+    $customSlug = !empty($input['custom_slug']) ? trim($input['custom_slug']) : null;
+
+    if ($customSlug !== null) {
+        // Validate custom slug
+        $validation = isValidSlug($customSlug);
+        if (!$validation['valid']) {
+            jsonResponse(false, null, $validation['error'], 400);
+        }
+
+        // Check if slug is unique
+        if (!isCodeUnique($customSlug)) {
+            $suggestions = generateSlugSuggestions($customSlug);
+            jsonResponse(false, [
+                'suggestions' => $suggestions
+            ], 'This slug is already taken. Try one of the suggested alternatives.', 409);
+        }
+
+        $code = $customSlug;
+    } else {
+        // Auto-generate unique code
+        $code = generateUniqueCode(QR_CODE_LENGTH);
+        if (!$code) {
+            jsonResponse(false, null, 'Failed to generate unique code. Please try again.', 500);
+        }
     }
 
     // Insert into database
@@ -127,8 +152,8 @@ function handleUpdate($input) {
 
     $id = (int)$input['id'];
 
-    // Check if QR code exists
-    $existing = $db->fetchOne("SELECT id FROM qr_codes WHERE id = ?", "i", [$id]);
+    // Check if QR code exists and get current data
+    $existing = $db->fetchOne("SELECT id, code, click_count FROM qr_codes WHERE id = ?", "i", [$id]);
     if (!$existing) {
         jsonResponse(false, null, 'QR code not found', 404);
     }
@@ -153,12 +178,48 @@ function handleUpdate($input) {
     $description = sanitizeInput($input['description'] ?? '');
     $tags = sanitizeInput($input['tags'] ?? '');
 
+    // Handle slug editing
+    $newCode = $existing['code']; // Default to existing code
+    if (!empty($input['new_slug']) && $input['new_slug'] !== $existing['code']) {
+        // User wants to change the slug
+        $newSlug = trim($input['new_slug']);
+
+        // Validate new slug
+        $validation = isValidSlug($newSlug);
+        if (!$validation['valid']) {
+            jsonResponse(false, null, $validation['error'], 400);
+        }
+
+        // Check if new slug is unique
+        if (!isCodeUnique($newSlug)) {
+            $suggestions = generateSlugSuggestions($newSlug);
+            jsonResponse(false, [
+                'suggestions' => $suggestions
+            ], 'This slug is already taken. Try one of the suggested alternatives.', 409);
+        }
+
+        // Warn if QR has clicks (frontend should handle confirmation)
+        if ($existing['click_count'] > 0 && empty($input['confirm_slug_change'])) {
+            jsonResponse(false, [
+                'click_count' => $existing['click_count'],
+                'requires_confirmation' => true
+            ], 'This QR code has been clicked ' . $existing['click_count'] . ' times. Changing the slug will break existing links.', 409);
+        }
+
+        // Delete old image file
+        $oldImagePath = GENERATED_PATH . '/' . $existing['code'] . '.png';
+        deleteFile($oldImagePath);
+
+        $newCode = $newSlug;
+    }
+
     // Update database
     $sql = "UPDATE qr_codes
-            SET title = ?, description = ?, destination_url = ?, tags = ?, updated_at = NOW()
+            SET code = ?, title = ?, description = ?, destination_url = ?, tags = ?, updated_at = NOW()
             WHERE id = ?";
 
-    $affected = $db->execute($sql, "ssssi", [
+    $affected = $db->execute($sql, "sssssi", [
+        $newCode,
         $title,
         $description,
         $destinationUrl,
@@ -288,6 +349,62 @@ function handleResetClicks($input) {
         jsonResponse(true, null, 'Click count reset successfully');
     } else {
         jsonResponse(false, null, 'Failed to reset click count', 500);
+    }
+}
+
+/**
+ * Handle check slug availability request
+ */
+function handleCheckSlugAvailability($input) {
+    // Validate slug parameter
+    if (empty($input['slug'])) {
+        jsonResponse(false, null, 'Slug is required', 400);
+    }
+
+    $slug = trim($input['slug']);
+    $excludeId = isset($input['exclude_id']) ? (int)$input['exclude_id'] : null;
+
+    // Validate slug format
+    $validation = isValidSlug($slug);
+    if (!$validation['valid']) {
+        jsonResponse(true, [
+            'available' => false,
+            'reason' => $validation['error'],
+            'suggestions' => []
+        ], $validation['error']);
+    }
+
+    // Check uniqueness
+    $isUnique = isCodeUnique($slug);
+
+    // If checking for edit mode, exclude current QR code ID
+    if ($excludeId !== null && !$isUnique) {
+        global $db;
+        $existing = $db->fetchOne(
+            "SELECT id FROM qr_codes WHERE code = ? AND id = ?",
+            "si",
+            [$slug, $excludeId]
+        );
+        // If the slug belongs to the current QR being edited, it's available
+        if ($existing) {
+            $isUnique = true;
+        }
+    }
+
+    if ($isUnique) {
+        jsonResponse(true, [
+            'available' => true,
+            'slug' => $slug
+        ], 'Slug is available');
+    } else {
+        // Generate suggestions
+        $suggestions = generateSlugSuggestions($slug);
+
+        jsonResponse(true, [
+            'available' => false,
+            'reason' => 'Slug is already taken',
+            'suggestions' => $suggestions
+        ], 'Slug is already taken');
     }
 }
 ?>
