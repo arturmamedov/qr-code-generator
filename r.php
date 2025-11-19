@@ -18,14 +18,14 @@ require_once __DIR__ . '/includes/init.php';
 // Get code from query parameter
 $code = $_GET['c'] ?? '';
 
-// Validate code format (alphanumeric, 6-10 characters)
-if (empty($code) || !preg_match('/^[A-Za-z0-9]{6,10}$/', $code)) {
+// Validate code format (letters, numbers, hyphens, underscores, 1-33 characters)
+if (empty($code) || !preg_match('/^[A-Za-z0-9_-]{1,33}$/', $code)) {
     show404Page('Invalid QR code format');
     exit;
 }
 
-// Sanitize code
-$code = strtoupper(trim($code));
+// Sanitize code (preserve case since we support mixed case slugs)
+$code = trim($code);
 
 try {
     // Look up QR code in database
