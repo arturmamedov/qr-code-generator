@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS qr_codes (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(10) UNIQUE NOT NULL,
+    code VARCHAR(33) UNIQUE NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     destination_url TEXT NOT NULL,
