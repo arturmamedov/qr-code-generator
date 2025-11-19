@@ -323,6 +323,9 @@ function initCreatePage() {
     // Form submission
     form.addEventListener('submit', handleCreateSubmit);
 
+    // Initialize slug validation
+    initSlugValidation('custom_slug', false);
+
     // Download buttons
     setupDownloadButtons();
 
@@ -380,7 +383,8 @@ async function handleCreateSubmit(event) {
         title: document.getElementById('title').value,
         description: document.getElementById('description').value,
         destination_url: document.getElementById('destination_url').value,
-        tags: document.getElementById('tags').value
+        tags: document.getElementById('tags').value,
+        custom_slug: document.getElementById('custom_slug')?.value || ''
     };
 
     // Create QR code via API
@@ -477,6 +481,9 @@ function initEditPage() {
     // Form submission
     form.addEventListener('submit', handleEditSubmit);
 
+    // Initialize slug validation
+    initSlugValidation('new_slug', true);
+
     // Download buttons
     setupDownloadButtons();
 
@@ -521,6 +528,25 @@ async function handleEditSubmit(event) {
     const qrId = form.dataset.id;
     const code = form.dataset.code;
 
+    // Check if slug changed
+    const newSlugInput = document.getElementById('new_slug');
+    const newSlug = newSlugInput?.value || code;
+    const slugChanged = newSlug !== code;
+    const clicks = parseInt(newSlugInput?.dataset.clicks) || 0;
+
+    // If slug changed and has clicks, ask for confirmation
+    if (slugChanged && clicks > 0) {
+        const confirmed = confirm(
+            `⚠️ Warning: This QR code has ${clicks} click${clicks !== 1 ? 's' : ''}.\n\n` +
+            `Changing the slug from "${code}" to "${newSlug}" will break existing QR codes that have been printed or distributed.\n\n` +
+            `Are you sure you want to continue?`
+        );
+
+        if (!confirmed) {
+            return; // User cancelled
+        }
+    }
+
     // Disable submit button
     submitBtn.disabled = true;
     submitBtn.textContent = 'Updating...';
@@ -534,16 +560,30 @@ async function handleEditSubmit(event) {
         tags: document.getElementById('tags').value
     };
 
+    // Include new slug if changed
+    if (slugChanged) {
+        formData.new_slug = newSlug;
+        formData.confirm_slug_change = true;
+    }
+
     // Update QR code via API
     const result = await apiCall('update', formData);
 
     if (result.success) {
-        // Save updated QR code image
-        await saveQrImage(code);
+        // Save updated QR code image (use new slug if changed)
+        const finalCode = slugChanged ? newSlug : code;
+        await saveQrImage(finalCode);
 
         // Show success modal
         showModal('successModal');
         showToast(result.message, 'success');
+
+        // If slug changed, redirect to updated URL after a delay
+        if (slugChanged) {
+            setTimeout(() => {
+                window.location.href = `edit.php?id=${qrId}`;
+            }, 1500);
+        }
     } else {
         showToast(result.message || 'Failed to update QR code', 'error');
     }
@@ -1280,6 +1320,192 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// ============================================
+// Slug Validation
+// ============================================
+
+let slugCheckInProgress = false;
+
+/**
+ * Check slug availability via API
+ */
+async function checkSlugAvailability(slug, excludeId = null) {
+    if (!slug || slug.trim() === '') {
+        return { available: true, reason: '', suggestions: [] };
+    }
+
+    slugCheckInProgress = true;
+
+    try {
+        const response = await fetch('api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'check_slug_availability',
+                slug: slug.trim(),
+                exclude_id: excludeId
+            })
+        });
+
+        const data = await response.json();
+        slugCheckInProgress = false;
+
+        if (data.success && data.data) {
+            return data.data;
+        }
+
+        return { available: false, reason: data.message, suggestions: [] };
+    } catch (error) {
+        console.error('Slug check error:', error);
+        slugCheckInProgress = false;
+        return { available: false, reason: 'Error checking availability', suggestions: [] };
+    }
+}
+
+/**
+ * Show slug feedback (available/taken/invalid)
+ */
+function showSlugFeedback(result, feedbackEl, suggestionsEl) {
+    if (!feedbackEl) return;
+
+    if (result.available) {
+        feedbackEl.className = 'slug-feedback success';
+        feedbackEl.innerHTML = '✓ Available';
+        if (suggestionsEl) {
+            suggestionsEl.style.display = 'none';
+        }
+    } else {
+        feedbackEl.className = 'slug-feedback error';
+        feedbackEl.innerHTML = '✗ ' + (result.reason || 'Not available');
+
+        // Show suggestions if available
+        if (suggestionsEl && result.suggestions && result.suggestions.length > 0) {
+            suggestionsEl.style.display = 'block';
+            suggestionsEl.innerHTML = '<strong>Suggestions:</strong> ' +
+                result.suggestions.map(s =>
+                    `<button type="button" class="suggestion-btn" data-slug="${s}">${s}</button>`
+                ).join(' ');
+
+            // Handle suggestion clicks
+            suggestionsEl.querySelectorAll('.suggestion-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const slugInput = document.getElementById('custom_slug') || document.getElementById('new_slug');
+                    if (slugInput) {
+                        slugInput.value = e.target.dataset.slug;
+                        slugInput.dispatchEvent(new Event('input'));
+                    }
+                });
+            });
+        } else if (suggestionsEl) {
+            suggestionsEl.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Update character counter
+ */
+function updateCharCounter(input, counterEl) {
+    if (!counterEl) return;
+    const length = input.value.length;
+    counterEl.textContent = `${length}/33`;
+}
+
+/**
+ * Initialize slug validation for create/edit pages
+ */
+function initSlugValidation(inputId, isEditMode = false) {
+    const slugInput = document.getElementById(inputId);
+    if (!slugInput) return;
+
+    const feedbackEl = document.getElementById('slugFeedback');
+    const suggestionsEl = document.getElementById('slugSuggestions');
+    const counterEl = document.getElementById('slugCharCounter');
+    const autoGenerateBtn = document.getElementById('autoGenerateBtn');
+    const warningEl = document.getElementById('slugWarning');
+
+    // Debounced slug check
+    const debouncedCheck = debounce(async () => {
+        const slug = slugInput.value.trim();
+
+        if (slug === '') {
+            if (feedbackEl) {
+                feedbackEl.className = 'slug-feedback';
+                feedbackEl.innerHTML = '';
+            }
+            if (suggestionsEl) {
+                suggestionsEl.style.display = 'none';
+            }
+            return;
+        }
+
+        // Show loading state
+        if (feedbackEl) {
+            feedbackEl.className = 'slug-feedback';
+            feedbackEl.innerHTML = '⋯ Checking...';
+        }
+
+        const excludeId = isEditMode ? parseInt(slugInput.closest('form')?.dataset.id) : null;
+        const result = await checkSlugAvailability(slug, excludeId);
+        showSlugFeedback(result, feedbackEl, suggestionsEl);
+    }, 500);
+
+    // Input event listener
+    slugInput.addEventListener('input', () => {
+        updateCharCounter(slugInput, counterEl);
+        debouncedCheck();
+
+        // Show warning in edit mode if slug changed and has clicks
+        if (isEditMode && warningEl) {
+            const original = slugInput.dataset.original;
+            const clicks = parseInt(slugInput.dataset.clicks) || 0;
+            if (slugInput.value !== original && clicks > 0) {
+                warningEl.style.display = 'block';
+            } else {
+                warningEl.style.display = 'none';
+            }
+        }
+    });
+
+    // Auto-generate button
+    if (autoGenerateBtn) {
+        autoGenerateBtn.addEventListener('click', async () => {
+            autoGenerateBtn.disabled = true;
+            autoGenerateBtn.innerHTML = '⋯';
+
+            // Generate random code (6 characters)
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars[Math.floor(Math.random() * chars.length)];
+            }
+
+            slugInput.value = code;
+            updateCharCounter(slugInput, counterEl);
+
+            // Check availability
+            const excludeId = isEditMode ? parseInt(slugInput.closest('form')?.dataset.id) : null;
+            const result = await checkSlugAvailability(code, excludeId);
+            showSlugFeedback(result, feedbackEl, suggestionsEl);
+
+            autoGenerateBtn.disabled = false;
+            autoGenerateBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.65 2.35C12.2 0.9 10.21 0 8 0C3.58 0 0.01 3.58 0.01 8C0.01 12.42 3.58 16 8 16C11.73 16 14.84 13.45 15.73 10H13.65C12.83 12.33 10.61 14 8 14C4.69 14 2 11.31 2 8C2 4.69 4.69 2 8 2C9.66 2 11.14 2.69 12.22 3.78L9 7H16V0L13.65 2.35Z" fill="currentColor"/></svg> Auto';
+
+            // Show warning in edit mode
+            if (isEditMode && warningEl) {
+                const original = slugInput.dataset.original;
+                const clicks = parseInt(slugInput.dataset.clicks) || 0;
+                if (code !== original && clicks > 0) {
+                    warningEl.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    // Initialize counter
+    updateCharCounter(slugInput, counterEl);
 }
 
 // ============================================
