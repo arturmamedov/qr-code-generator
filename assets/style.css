@@ -914,6 +914,135 @@ small {
     margin-bottom: var(--spacing-lg);
 }
 
+.warning-message {
+    padding: var(--spacing-md);
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    border-radius: var(--radius-sm);
+    margin-top: var(--spacing-sm);
+    color: #856404;
+    font-size: 0.875rem;
+    animation: slideIn 0.3s ease;
+}
+
+/* ============================================
+   Slug Input & Validation
+   ============================================ */
+
+.slug-input-wrapper {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: stretch;
+}
+
+.slug-input-wrapper input {
+    flex: 1;
+}
+
+.btn-auto-generate {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.875rem;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-auto-generate:hover:not(:disabled) {
+    background: var(--gray-200);
+    border-color: var(--gray-400);
+}
+
+.btn-auto-generate:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.btn-auto-generate:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-auto-generate svg {
+    width: 16px;
+    height: 16px;
+}
+
+.slug-feedback {
+    margin-top: var(--spacing-xs);
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.25rem;
+}
+
+.slug-feedback.success {
+    color: var(--success-color);
+}
+
+.slug-feedback.error {
+    color: var(--error-color);
+}
+
+.slug-suggestions {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+}
+
+.slug-suggestions strong {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    color: var(--gray-700);
+}
+
+.suggestion-btn {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    margin: 0.25rem 0.25rem 0 0;
+    background: white;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.8125rem;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.suggestion-btn:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.suggestion-btn:active {
+    transform: translateY(0);
+}
+
+.char-counter {
+    display: inline-block;
+    margin-left: var(--spacing-xs);
+    padding: 0.125rem 0.375rem;
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--gray-600);
+}
+
 /* ============================================
    Stats Display (Edit Page)
    ============================================ */
@@ -1579,6 +1708,25 @@ a:focus-visible {
     .btn-copy {
         padding: 0.5rem;
         font-size: 1.25rem;
+    }
+
+    /* Slug input on mobile */
+    .slug-input-wrapper {
+        flex-direction: column;
+    }
+
+    .btn-auto-generate {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .slug-suggestions {
+        font-size: 0.8125rem;
+    }
+
+    .suggestion-btn {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.5rem;
     }
 }
 
