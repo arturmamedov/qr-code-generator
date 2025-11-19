@@ -68,9 +68,20 @@ function isCodeUnique($code) {
  *
  * @param int $length Length of code
  * @param int $maxAttempts Maximum attempts to generate unique code
+ * @param string|null $customSlug Optional custom slug to use instead of generating
  * @return string|false Unique code or false on failure
  */
-function generateUniqueCode($length = 6, $maxAttempts = 10) {
+function generateUniqueCode($length = 6, $maxAttempts = 10, $customSlug = null) {
+    // If custom slug is provided, validate and return it
+    if ($customSlug !== null) {
+        $validation = isValidSlug($customSlug);
+        if ($validation['valid'] && isCodeUnique($customSlug)) {
+            return $customSlug;
+        }
+        return false; // Invalid or not unique
+    }
+
+    // Otherwise generate random code
     for ($i = 0; $i < $maxAttempts; $i++) {
         $code = generateCode($length);
         if (isCodeUnique($code)) {
@@ -231,5 +242,97 @@ function deleteFile($filePath) {
         }
     }
     return true;
+}
+
+/**
+ * Validate custom slug format
+ *
+ * @param string $slug Slug to validate
+ * @return array ['valid' => bool, 'error' => string]
+ */
+function isValidSlug($slug) {
+    // Check if empty
+    if (empty($slug)) {
+        return ['valid' => false, 'error' => 'Slug cannot be empty'];
+    }
+
+    // Check length
+    $length = strlen($slug);
+    if ($length < 1 || $length > QR_MAX_SLUG_LENGTH) {
+        return ['valid' => false, 'error' => 'Slug must be between 1 and ' . QR_MAX_SLUG_LENGTH . ' characters'];
+    }
+
+    // Check for URL-safe characters only (letters, numbers, hyphens, underscores)
+    // Allow mixed case as per requirements
+    if (!preg_match('/^[a-zA-Z0-9_-]+$/', $slug)) {
+        return ['valid' => false, 'error' => 'Slug can only contain letters, numbers, hyphens, and underscores'];
+    }
+
+    // Check if slug is reserved
+    if (in_array(strtolower($slug), array_map('strtolower', RESERVED_SLUGS))) {
+        return ['valid' => false, 'error' => 'This slug is reserved and cannot be used'];
+    }
+
+    return ['valid' => true, 'error' => ''];
+}
+
+/**
+ * Generate slug suggestions when the desired slug is taken
+ *
+ * @param string $baseSlug Base slug to generate suggestions from
+ * @param int $count Number of suggestions to generate
+ * @return array Array of suggested slugs
+ */
+function generateSlugSuggestions($baseSlug, $count = 5) {
+    $suggestions = [];
+    $db = Database::getInstance();
+
+    // Strategy 1: Append numbers (slug-2, slug-3, etc.)
+    for ($i = 2; $i <= $count + 1; $i++) {
+        $suggestion = $baseSlug . '-' . $i;
+
+        // Check length limit
+        if (strlen($suggestion) > QR_MAX_SLUG_LENGTH) {
+            continue;
+        }
+
+        // Check if unique
+        if (isCodeUnique($suggestion)) {
+            $suggestions[] = $suggestion;
+            if (count($suggestions) >= $count) {
+                return $suggestions;
+            }
+        }
+    }
+
+    // Strategy 2: Append current year (slug-2025)
+    $yearSuggestion = $baseSlug . '-' . date('Y');
+    if (strlen($yearSuggestion) <= QR_MAX_SLUG_LENGTH && isCodeUnique($yearSuggestion)) {
+        $suggestions[] = $yearSuggestion;
+        if (count($suggestions) >= $count) {
+            return $suggestions;
+        }
+    }
+
+    // Strategy 3: Append current month-year (slug-nov-2025)
+    $monthYearSuggestion = $baseSlug . '-' . strtolower(date('M-Y'));
+    if (strlen($monthYearSuggestion) <= QR_MAX_SLUG_LENGTH && isCodeUnique($monthYearSuggestion)) {
+        $suggestions[] = $monthYearSuggestion;
+        if (count($suggestions) >= $count) {
+            return $suggestions;
+        }
+    }
+
+    // Strategy 4: Append short random code
+    for ($i = 0; $i < 10 && count($suggestions) < $count; $i++) {
+        $randomCode = strtolower(generateCode(3)); // 3-char random code
+        $randomSuggestion = $baseSlug . '-' . $randomCode;
+
+        if (strlen($randomSuggestion) <= QR_MAX_SLUG_LENGTH && isCodeUnique($randomSuggestion)) {
+            $suggestions[] = $randomSuggestion;
+        }
+    }
+
+    return array_slice($suggestions, 0, $count);
 }
 ?>
