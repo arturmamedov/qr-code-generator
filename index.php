@@ -58,7 +58,82 @@ $pageTitle = 'QR Code Manager - Dashboard';
                     <div class="stat-label">Total Clicks</div>
                 </div>
             </div>
+
+            <?php if (!empty($qrCodes)):
+                // Calculate average clicks
+                $avgClicks = $totalQrCodes > 0 ? round($totalClicks / $totalQrCodes, 1) : 0;
+            ?>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-value"><?php echo number_format($avgClicks, 1); ?></div>
+                    <div class="stat-label">Average Clicks</div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
+
+        <!-- Top Performers Widget -->
+        <?php if (!empty($qrCodes)):
+            // Get top 5 QR codes by clicks
+            $topQrCodes = $qrCodes;
+            usort($topQrCodes, function($a, $b) {
+                return $b['click_count'] - $a['click_count'];
+            });
+            $topQrCodes = array_slice($topQrCodes, 0, 5);
+
+            // Only show if at least one has clicks
+            $hasClicks = false;
+            foreach ($topQrCodes as $qr) {
+                if ($qr['click_count'] > 0) {
+                    $hasClicks = true;
+                    break;
+                }
+            }
+
+            if ($hasClicks):
+        ?>
+        <div class="top-performers-widget">
+            <h3>🏆 Top Performers</h3>
+            <div class="top-performers-list">
+                <?php foreach ($topQrCodes as $index => $qr):
+                    if ($qr['click_count'] > 0):
+                ?>
+                    <div class="top-performer-item">
+                        <div class="performer-rank"><?php echo $index + 1; ?></div>
+                        <div class="performer-info">
+                            <div class="performer-title"><?php echo htmlspecialchars($qr['title']); ?></div>
+                            <div class="performer-code"><?php echo $qr['code']; ?></div>
+                        </div>
+                        <div class="performer-clicks">
+                            <div class="clicks-value"><?php echo number_format($qr['click_count']); ?></div>
+                            <div class="clicks-label">clicks</div>
+                        </div>
+                    </div>
+                <?php
+                    endif;
+                endforeach; ?>
+            </div>
+        </div>
+        <?php
+            endif;
+        endif; ?>
+
+        <!-- Search & Filter -->
+        <?php if (!empty($qrCodes)): ?>
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text"
+                       id="searchInput"
+                       class="search-input"
+                       placeholder="🔍 Search by title, code, destination, or tags...">
+                <button id="clearSearch" class="btn-clear-search" style="display: none;">✕</button>
+            </div>
+            <div class="search-results-info">
+                <span id="resultsCount">Showing all <?php echo $totalQrCodes; ?> QR codes</span>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- QR Codes Table -->
         <div class="table-container">
@@ -74,17 +149,31 @@ $pageTitle = 'QR Code Manager - Dashboard';
                     <thead>
                         <tr>
                             <th>Preview</th>
-                            <th>Title</th>
-                            <th>Code</th>
+                            <th class="sortable" data-sort="title">
+                                Title <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="code">
+                                Code <span class="sort-indicator"></span>
+                            </th>
                             <th>Destination</th>
-                            <th>Clicks</th>
-                            <th>Created</th>
+                            <th class="sortable" data-sort="clicks">
+                                Clicks <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="created">
+                                Created <span class="sort-indicator"></span>
+                            </th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="qrTableBody">
                         <?php foreach ($qrCodes as $qr): ?>
-                            <tr data-id="<?php echo $qr['id']; ?>">
+                            <tr data-id="<?php echo $qr['id']; ?>"
+                                data-title="<?php echo htmlspecialchars(strtolower($qr['title'])); ?>"
+                                data-code="<?php echo strtolower($qr['code']); ?>"
+                                data-destination="<?php echo htmlspecialchars(strtolower($qr['destination_url'])); ?>"
+                                data-tags="<?php echo htmlspecialchars(strtolower($qr['tags'])); ?>"
+                                data-clicks="<?php echo $qr['click_count']; ?>"
+                                data-created="<?php echo $qr['created_at']; ?>">
                                 <!-- Preview -->
                                 <td class="preview-cell">
                                     <?php
@@ -173,9 +262,119 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                 </td>
                             </tr>
                         <?php endforeach; ?>
+                        <!-- No Results Row (hidden by default, shown by JS when search has no matches) -->
+                        <tr id="noResultsRow" style="display: none;">
+                            <td colspan="7" class="no-results-cell">
+                                <div class="empty-state">
+                                    <div class="empty-icon">🔍</div>
+                                    <h3>No QR codes found</h3>
+                                    <p>Try adjusting your search terms</p>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">Showing 1-25 of <?php echo $totalQrCodes; ?></span>
+                    </div>
+                    <div class="pagination-controls">
+                        <button id="prevPage" class="btn-page" disabled>
+                            ← Previous
+                        </button>
+                        <div id="pageNumbers" class="page-numbers"></div>
+                        <button id="nextPage" class="btn-page">
+                            Next →
+                        </button>
+                    </div>
+                    <div class="pagination-settings">
+                        <label for="pageSize">Per page:</label>
+                        <select id="pageSize" class="page-size-select">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
             <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- QR Preview Modal -->
+    <div id="qrPreviewModal" class="modal">
+        <div class="modal-content qr-preview-modal">
+            <button class="modal-close" id="closePreviewModal">✕</button>
+
+            <div class="qr-preview-layout">
+                <div class="qr-preview-image">
+                    <img id="previewModalImage" src="" alt="QR Code">
+                </div>
+
+                <div class="qr-preview-details">
+                    <h2 id="previewModalTitle"></h2>
+
+                    <div class="detail-group">
+                        <label>Short Code:</label>
+                        <div class="detail-value">
+                            <code id="previewModalCode" class="qr-code-large"></code>
+                            <button class="btn-copy-inline" id="previewCopyCode" title="Copy code">📋</button>
+                        </div>
+                    </div>
+
+                    <div class="detail-group">
+                        <label>Short URL:</label>
+                        <div class="detail-value">
+                            <code id="previewModalUrl"></code>
+                            <button class="btn-copy-inline" id="previewCopyUrl" title="Copy URL">📋</button>
+                        </div>
+                    </div>
+
+                    <div class="detail-group">
+                        <label>Destination:</label>
+                        <div class="detail-value">
+                            <a id="previewModalDestination" href="" target="_blank" rel="noopener noreferrer"></a>
+                        </div>
+                    </div>
+
+                    <div class="detail-group" id="previewDescriptionGroup" style="display: none;">
+                        <label>Description:</label>
+                        <div class="detail-value" id="previewModalDescription"></div>
+                    </div>
+
+                    <div class="detail-group" id="previewTagsGroup" style="display: none;">
+                        <label>Tags:</label>
+                        <div class="detail-value">
+                            <div id="previewModalTags" class="tags-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="detail-stats">
+                        <div class="stat-box">
+                            <div class="stat-box-value" id="previewModalClicks">0</div>
+                            <div class="stat-box-label">Clicks</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-box-value" id="previewModalCreated"></div>
+                            <div class="stat-box-label">Created</div>
+                        </div>
+                    </div>
+
+                    <div class="preview-modal-actions">
+                        <a id="previewEditBtn" href="" class="btn btn-secondary">
+                            ✏️ Edit
+                        </a>
+                        <a id="previewDownloadBtn" href="" download class="btn btn-primary">
+                            ⬇️ Download
+                        </a>
+                        <button id="previewDeleteBtn" class="btn btn-danger">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
