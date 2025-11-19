@@ -1426,6 +1426,40 @@ function initSlugValidation(inputId, isEditMode = false) {
     const autoGenerateBtn = document.getElementById('autoGenerateBtn');
     const warningEl = document.getElementById('slugWarning');
 
+    // Double-click to edit in edit mode (slug starts disabled)
+    if (isEditMode && slugInput.disabled) {
+        slugInput.addEventListener('dblclick', () => {
+            slugInput.disabled = false;
+            slugInput.focus();
+            slugInput.select();
+            if (autoGenerateBtn) {
+                autoGenerateBtn.disabled = false;
+                autoGenerateBtn.title = 'Auto-generate random code';
+            }
+            // Show visual feedback
+            if (feedbackEl) {
+                feedbackEl.className = 'slug-feedback success';
+                feedbackEl.innerHTML = '✏️ Editing enabled';
+                setTimeout(() => {
+                    feedbackEl.className = 'slug-feedback';
+                    feedbackEl.innerHTML = '';
+                }, 2000);
+            }
+        });
+
+        // Also allow single click to show instruction
+        slugInput.addEventListener('click', (e) => {
+            if (slugInput.disabled && feedbackEl) {
+                feedbackEl.className = 'slug-feedback';
+                feedbackEl.innerHTML = '💡 Double-click to edit this field';
+                setTimeout(() => {
+                    feedbackEl.className = 'slug-feedback';
+                    feedbackEl.innerHTML = '';
+                }, 2000);
+            }
+        });
+    }
+
     // Debounced slug check
     const debouncedCheck = debounce(async () => {
         const slug = slugInput.value.trim();
