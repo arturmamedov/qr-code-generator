@@ -62,11 +62,38 @@ $pageTitle = 'Edit QR Code';
                         <h2>Basic Information</h2>
 
                         <div class="form-group">
-                            <label>QR Code</label>
-                            <div class="readonly-field">
-                                <code class="qr-code-large"><?php echo $qrCode['code']; ?></code>
-                                <small class="help-text">Cannot be changed</small>
+                            <label for="new_slug">URL Slug</label>
+                            <div class="slug-input-wrapper">
+                                <input type="text"
+                                       id="new_slug"
+                                       name="new_slug"
+                                       value="<?php echo htmlspecialchars($qrCode['code']); ?>"
+                                       placeholder="e.g., summer-sale, product-launch"
+                                       maxlength="33"
+                                       autocomplete="off"
+                                       pattern="[a-zA-Z0-9_-]+"
+                                       title="Only letters, numbers, hyphens, and underscores allowed"
+                                       data-original="<?php echo htmlspecialchars($qrCode['code']); ?>"
+                                       data-clicks="<?php echo $qrCode['click_count']; ?>">
+                                <button type="button" id="autoGenerateBtn" class="btn-auto-generate" title="Auto-generate random code">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M13.65 2.35C12.2 0.9 10.21 0 8 0C3.58 0 0.01 3.58 0.01 8C0.01 12.42 3.58 16 8 16C11.73 16 14.84 13.45 15.73 10H13.65C12.83 12.33 10.61 14 8 14C4.69 14 2 11.31 2 8C2 4.69 4.69 2 8 2C9.66 2 11.14 2.69 12.22 3.78L9 7H16V0L13.65 2.35Z" fill="currentColor"/>
+                                    </svg>
+                                    Auto
+                                </button>
                             </div>
+                            <div id="slugFeedback" class="slug-feedback"></div>
+                            <div id="slugSuggestions" class="slug-suggestions" style="display: none;"></div>
+                            <?php if ($qrCode['click_count'] > 0): ?>
+                            <div class="warning-message" id="slugWarning" style="display: none;">
+                                ⚠️ This QR code has <strong><?php echo $qrCode['click_count']; ?> click<?php echo $qrCode['click_count'] != 1 ? 's' : ''; ?></strong>.
+                                Changing the slug will break existing QR codes that have been printed or distributed.
+                            </div>
+                            <?php endif; ?>
+                            <small class="help-text">
+                                Current URL: <strong><?php echo getQrUrl($qrCode['code']); ?></strong>
+                                <span id="slugCharCounter" class="char-counter"><?php echo strlen($qrCode['code']); ?>/33</span>
+                            </small>
                         </div>
 
                         <div class="form-group">
