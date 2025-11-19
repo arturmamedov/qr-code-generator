@@ -939,6 +939,18 @@ small {
     flex: 1;
 }
 
+.slug-input-wrapper input:disabled {
+    background: var(--gray-100);
+    color: var(--gray-600);
+    cursor: pointer;
+    border-color: var(--gray-300);
+}
+
+.slug-input-wrapper input:disabled:hover {
+    background: #e8e8e8;
+    border-color: var(--gray-400);
+}
+
 .btn-auto-generate {
     display: inline-flex;
     align-items: center;

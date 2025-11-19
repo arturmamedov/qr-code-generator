@@ -72,10 +72,11 @@ $pageTitle = 'Edit QR Code';
                                        maxlength="33"
                                        autocomplete="off"
                                        pattern="[a-zA-Z0-9_-]+"
-                                       title="Only letters, numbers, hyphens, and underscores allowed"
+                                       title="Double-click to edit slug"
                                        data-original="<?php echo htmlspecialchars($qrCode['code']); ?>"
-                                       data-clicks="<?php echo $qrCode['click_count']; ?>">
-                                <button type="button" id="autoGenerateBtn" class="btn-auto-generate" title="Auto-generate random code">
+                                       data-clicks="<?php echo $qrCode['click_count']; ?>"
+                                       disabled>
+                                <button type="button" id="autoGenerateBtn" class="btn-auto-generate" title="Double-click slug field first to enable" disabled>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M13.65 2.35C12.2 0.9 10.21 0 8 0C3.58 0 0.01 3.58 0.01 8C0.01 12.42 3.58 16 8 16C11.73 16 14.84 13.45 15.73 10H13.65C12.83 12.33 10.61 14 8 14C4.69 14 2 11.31 2 8C2 4.69 4.69 2 8 2C9.66 2 11.14 2.69 12.22 3.78L9 7H16V0L13.65 2.35Z" fill="currentColor"/>
                                     </svg>
@@ -93,6 +94,8 @@ $pageTitle = 'Edit QR Code';
                             <small class="help-text">
                                 Current URL: <strong><?php echo getQrUrl($qrCode['code']); ?></strong>
                                 <span id="slugCharCounter" class="char-counter"><?php echo strlen($qrCode['code']); ?>/33</span>
+                                <br>
+                                <em>💡 Double-click the slug field to edit</em>
                             </small>
                         </div>
 

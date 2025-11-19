@@ -203,7 +203,8 @@ function formatDate($datetime, $format = 'M d, Y g:i A') {
  * @return string Full URL for QR code
  */
 function getQrUrl($code) {
-    return BASE_URL . '/' . $code;
+    // Remove trailing slash from BASE_URL to prevent double slashes
+    return rtrim(BASE_URL, '/') . '/' . $code;
 }
 
 /**
