@@ -49,6 +49,32 @@ $pageTitle = 'Create QR Code';
                         </div>
 
                         <div class="form-group">
+                            <label for="custom_slug">Custom URL Slug</label>
+                            <div class="slug-input-wrapper">
+                                <input type="text"
+                                       id="custom_slug"
+                                       name="custom_slug"
+                                       placeholder="e.g., summer-sale, product-launch"
+                                       maxlength="33"
+                                       autocomplete="off"
+                                       pattern="[a-zA-Z0-9_-]+"
+                                       title="Only letters, numbers, hyphens, and underscores allowed">
+                                <button type="button" id="autoGenerateBtn" class="btn-auto-generate" title="Auto-generate random code">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M13.65 2.35C12.2 0.9 10.21 0 8 0C3.58 0 0.01 3.58 0.01 8C0.01 12.42 3.58 16 8 16C11.73 16 14.84 13.45 15.73 10H13.65C12.83 12.33 10.61 14 8 14C4.69 14 2 11.31 2 8C2 4.69 4.69 2 8 2C9.66 2 11.14 2.69 12.22 3.78L9 7H16V0L13.65 2.35Z" fill="currentColor"/>
+                                    </svg>
+                                    Auto
+                                </button>
+                            </div>
+                            <div id="slugFeedback" class="slug-feedback"></div>
+                            <div id="slugSuggestions" class="slug-suggestions" style="display: none;"></div>
+                            <small class="help-text">
+                                Create a custom, memorable URL (e.g., <strong><?php echo BASE_URL; ?>/your-slug</strong>).
+                                Leave empty to auto-generate. <span id="slugCharCounter" class="char-counter">0/33</span>
+                            </small>
+                        </div>
+
+                        <div class="form-group">
                             <label for="description">Description</label>
                             <textarea id="description"
                                       name="description"
