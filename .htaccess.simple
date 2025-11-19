@@ -20,7 +20,8 @@ RewriteBase /
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !^/(index|create|edit|api|save-image|diagnostic)\.php
-RewriteRule ^([A-Za-z0-9]{6,10})$ r.php?c=$1 [L,QSA]
+# Supports letters, numbers, hyphens, underscores (1-33 characters) for custom slugs
+RewriteRule ^([A-Za-z0-9_-]{1,33})$ r.php?c=$1 [L,QSA]
 
 # Prevent directory browsing
 Options -Indexes
