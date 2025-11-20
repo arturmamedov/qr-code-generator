@@ -18,6 +18,9 @@ require_once __DIR__ . '/Database.php';
 // Load helper functions
 require_once __DIR__ . '/helpers.php';
 
+// Load version helper functions
+require_once __DIR__ . '/version-helpers.php';
+
 // Set error reporting based on environment
 if (defined('ENABLE_ERROR_LOG') && ENABLE_ERROR_LOG) {
     // Log errors but don't display them
