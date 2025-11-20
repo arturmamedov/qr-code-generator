@@ -5,12 +5,16 @@ A self-hosted QR code management system with dynamic redirect capabilities. Crea
 ## ✨ Features
 
 - **Dynamic Redirects**: Change destination URLs without regenerating QR codes
+- **Custom URL Slugs**: Create memorable, branded URLs (e.g., `qr.nestshostels.com/summer-sale`) or auto-generate random codes
 - **Click Tracking**: Monitor how many times each QR code is scanned
 - **Custom Styling**: Customize QR code appearance (colors, dot styles, corners)
 - **Logo Support**: Add your logo to the center of QR codes
 - **Multiple Formats**: Download QR codes as PNG, SVG, or JPG
-- **Clean URLs**: User-friendly short URLs (e.g., `qr.nestshostels.com/ABC123`)
+- **Clean URLs**: User-friendly short URLs with support for hyphens and underscores
 - **Admin Dashboard**: Manage all QR codes from a single interface
+- **Search & Filter**: Real-time search across titles, codes, destinations, and tags
+- **Column Sorting**: Sort QR codes by title, code, clicks, or creation date
+- **Pagination**: Navigate large datasets with smart pagination controls
 - **Secure**: Protected admin area with HTTP Basic Authentication
 - **Responsive Design**: Works perfectly on desktop, tablet, and mobile
 - **Error Logging**: Built-in error logging for debugging
@@ -167,6 +171,12 @@ Or via FTP: Right-click folder → File Permissions → Set to 755
 2. Click "Create New QR Code"
 3. Fill in required fields:
    - **Title**: Descriptive name (e.g., "Restaurant Menu")
+   - **Custom URL Slug** (optional):
+     - Enter a memorable slug like `summer-sale`, `menu-2025`, `product-launch`
+     - Or leave empty and click "Auto" to generate a random code (e.g., `ABC123`)
+     - Supports letters, numbers, hyphens, and underscores (up to 33 characters)
+     - Real-time validation shows if slug is available
+     - Suggestions provided if slug is already taken
    - **Destination URL**: Where the QR code should redirect
    - **Description** (optional): Additional notes
    - **Tags** (optional): Comma-separated tags
@@ -181,10 +191,18 @@ Or via FTP: Right-click folder → File Permissions → Set to 755
 
 1. Click the edit (✏️) button on any QR code
 2. Update the destination URL or other details
-3. Regenerate with new styling if desired
-4. Click "Update QR Code"
+3. **Changing the Slug** (use with caution):
+   - Double-click the URL slug field to unlock editing
+   - Enter a new slug or click "Auto" to generate a random one
+   - If the QR code has clicks, you'll see a warning
+   - Confirm the change (this will break existing printed QR codes!)
+4. Regenerate with new styling if desired
+5. Click "Update QR Code"
 
-**Note**: The short code (e.g., ABC123) never changes! All existing QR codes will automatically redirect to the new URL.
+**Important Notes:**
+- Changing the slug will break all existing QR codes that have been printed or distributed
+- The system will warn you if the QR code has clicks before allowing the change
+- If you only need to change the destination URL, you don't need to change the slug!
 
 ### Deleting a QR Code
 
@@ -221,11 +239,13 @@ From create/edit pages:
 - Verify Apache has mod_rewrite enabled
 - Check file permissions (644 for PHP files)
 
-### Clean URLs not working (/ABC123)
+### Clean URLs not working (/ABC123 or /my-custom-slug)
 
 - Ensure mod_rewrite is enabled: `a2enmod rewrite` (Linux)
 - Check `.htaccess` RewriteBase setting
 - Verify Apache AllowOverride is set to "All"
+- Custom slugs with hyphens/underscores require the updated `.htaccess` pattern
+- Pattern should be: `^([A-Za-z0-9_-]{1,33})$` (not the old `^([A-Za-z0-9]{6,10})$`)
 
 ### "Permission denied" errors
 
@@ -328,9 +348,25 @@ Edit `assets/style.css` CSS variables:
 Edit `config.php`:
 
 ```php
-define('QR_CODE_LENGTH', 6);  // Length of short codes
-define('QR_DEFAULT_SIZE', 300); // Default QR size
+define('QR_CODE_LENGTH', 6);     // Length of auto-generated codes
+define('QR_MAX_SLUG_LENGTH', 33); // Maximum length for custom slugs
+define('QR_DEFAULT_SIZE', 300);   // Default QR size in pixels
 ```
+
+### Reserved Slugs
+
+System paths that cannot be used as QR code slugs (defined in `config.php`):
+
+```php
+define('RESERVED_SLUGS', [
+    'admin', 'api', 'create', 'edit', 'index',
+    'generated', 'assets', 'includes', 'logs',
+    'config', 'database', 'diagnostic', 'save-image',
+    'r', 'qr', 'delete', 'update', 'get'
+]);
+```
+
+Add additional reserved words to this array as needed.
 
 ### Error Logging
 
@@ -340,22 +376,31 @@ Enable/disable in `config.php`:
 define('ENABLE_ERROR_LOG', true);
 ```
 
-## 🚀 Future Enhancements
+## 🚀 Implemented Features
 
-Ideas for future versions (currently not implemented):
+Features that have been added since initial release:
 
-- ✅ Search and filter QR codes
-- ✅ Column sorting in dashboard
-- ✅ Pagination for large datasets
-- ✅ Bulk operations (delete, export)
-- ✅ CSV export for analytics
-- ✅ Date range filtering
-- ✅ QR code categories/folders
-- ✅ API key authentication for external integrations
-- ✅ Statistics dashboard with charts
-- ✅ Scheduled URL changes
-- ✅ A/B testing for destinations
-- ✅ Geolocation tracking (with privacy considerations)
+- ✅ **Custom URL Slugs** - Create memorable, branded URLs
+- ✅ **Search and Filter** - Real-time search across all QR code fields
+- ✅ **Column Sorting** - Sort by any column with visual indicators
+- ✅ **Pagination** - Navigate large datasets efficiently
+- ✅ **QR Preview Modal** - Quick preview with full details
+- ✅ **Top Performers Widget** - See your most-clicked QR codes
+- ✅ **Enhanced Copy Feedback** - Visual confirmation when copying URLs
+
+## 💡 Future Enhancement Ideas
+
+Potential features for future versions (not yet implemented):
+
+- Bulk operations (delete, export)
+- CSV export for analytics
+- Date range filtering
+- QR code categories/folders
+- API key authentication for external integrations
+- Statistics dashboard with charts
+- Scheduled URL changes
+- A/B testing for destinations
+- Geolocation tracking (with privacy considerations)
 
 ## 📄 Credits
 
