@@ -161,9 +161,9 @@ The `style_config` field will store all qr-code-styling library options:
         "margin": 0
     },
     "logo": {
-        "hasLogo": false,
-        "logoData": null,
-        "logoFilename": null
+        "hasLogo": true,
+        "logoPath": "logos/logo_v1.png",
+        "logoFilename": "company-logo.png"
     }
 }
 ```
@@ -506,16 +506,35 @@ POST /api-versions.php
 
 ### 1. **File Storage Strategy**
 **Current:** `generated/{code}.png`
-**Proposed:** `generated/{code}_v{version_id}.png`
+**Proposed:** `generated/qr-code-{id}/` (folder per QR code)
 
-**Why version_id?**
-- Unique and sequential
-- Easy to identify
-- No naming conflicts
+**Folder Structure:**
+```
+generated/
+└── qr-code-123/              (based on QR ID, never changes)
+    ├── v1.png                (version 1 QR image)
+    ├── v2.png                (version 2 QR image)
+    ├── v3.png                (version 3 QR image)
+    └── logos/                (logos subfolder)
+        ├── logo_v1.png       (version 1 logo, if exists)
+        └── logo_v2.png       (version 2 logo, if exists)
+```
+
+**Why folder per QR code (using ID)?**
+- ✅ ID never changes (unlike slug which can be edited)
+- ✅ All versions grouped together in one folder
+- ✅ Easy to manage logos per version
+- ✅ No folder renaming when slug changes
+- ✅ Clean organization and cleanup
+
+**Logo Handling:**
+- Logos uploaded to `generated/qr-code-{id}/logos/logo_v{version_id}.png`
+- If version has no logo, no logo file is created
+- Logo path stored in style_config JSON
 
 **Cleanup:**
-- Delete version → Delete file
-- Delete QR code → Cascade deletes all versions + files
+- Delete version → Delete QR image + logo file (if exists)
+- Delete QR code → Delete entire `qr-code-{id}` folder with all versions + logos
 
 ### 2. **Favorite Version Logic**
 - Each QR code must have a favorite version
@@ -536,17 +555,19 @@ POST /api-versions.php
 
 ### 4. **Logo Handling**
 **Current:** Logo uploaded per QR code, stored temporarily
-**Proposed:** Logo data embedded in style_config JSON as base64
+**Proposed:** Logo uploaded and saved to `generated/qr-code-{id}/logos/` folder
 
-**Why?**
+**Why folder storage?**
 - Each version can have different logo
-- No logo file management headaches
-- Easy to clone/regenerate
+- Clean file organization
+- Easy backup and migration
+- No database bloat from base64
 
 **Process:**
-1. User uploads logo → Convert to base64 data URL
-2. Store in style_config JSON
-3. When regenerating, extract base64 and use directly
+1. User uploads logo → Save to `generated/qr-code-{id}/logos/logo_v{version_id}.png`
+2. Store logo path/filename in style_config JSON
+3. When regenerating, load logo from file path
+4. If no logo: no file created, logo field null in style_config
 
 ### 5. **Click Tracking**
 - Keep clicks at QR code level (shared across all versions)
@@ -594,7 +615,7 @@ Please review this plan and confirm:
    - Create one version immediately?
    - Or let users create versions afterward?
 
-5. **Logo storage** - Is base64 in JSON okay, or prefer separate file storage?
+5. **Logo storage** - ✅ CONFIRMED: Upload to folders (`qr-code-{id}/logos/`)
 
 6. **UI preference** - For edit page with many versions:
    - Show first 5 + "View All" button?
