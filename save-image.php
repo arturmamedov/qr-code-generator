@@ -14,19 +14,40 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit('Method not allowed');
 }
 
-// Check if image and code are present
-if (!isset($_FILES['image']) || !isset($_POST['code'])) {
+// Check if image is present
+if (!isset($_FILES['image'])) {
     http_response_code(400);
-    exit('Missing required parameters');
+    exit('Missing image file');
 }
 
-$code = sanitizeInput($_POST['code']);
 $image = $_FILES['image'];
 
-// Validate code format
-if (!preg_match('/^[A-Za-z0-9]{6,10}$/', $code)) {
+// Check for new versioned format (qr_code_id + version_id) or old format (code)
+if (isset($_POST['qr_code_id']) && isset($_POST['version_id'])) {
+    // New versioned format
+    $qrCodeId = (int)$_POST['qr_code_id'];
+    $versionId = (int)$_POST['version_id'];
+
+    if ($qrCodeId <= 0 || $versionId <= 0) {
+        http_response_code(400);
+        exit('Invalid QR code ID or version ID');
+    }
+
+    $useVersioning = true;
+} elseif (isset($_POST['code'])) {
+    // Old format for backward compatibility
+    $code = sanitizeInput($_POST['code']);
+
+    // Validate code format
+    if (!preg_match('/^[A-Za-z0-9_-]{1,33}$/', $code)) {
+        http_response_code(400);
+        exit('Invalid code format');
+    }
+
+    $useVersioning = false;
+} else {
     http_response_code(400);
-    exit('Invalid code format');
+    exit('Missing required parameters (qr_code_id+version_id or code)');
 }
 
 // Validate image upload
@@ -47,21 +68,36 @@ if (!in_array($mimeType, $allowedTypes)) {
     exit('Invalid image type');
 }
 
-// Ensure generated directory exists
-if (!ensureDirectory(GENERATED_PATH)) {
-    http_response_code(500);
-    exit('Failed to create generated directory');
+// Determine file path based on versioning
+if ($useVersioning) {
+    // New versioned format: generated/qr-code-{id}/v{version_id}.png
+    if (!ensureQrFolderStructure($qrCodeId)) {
+        http_response_code(500);
+        exit('Failed to create folder structure');
+    }
+
+    $filename = getVersionFilename($versionId);
+    $filepath = getVersionImagePath($qrCodeId, $versionId);
+} else {
+    // Old format: generated/{code}.png (backward compatibility)
+    if (!ensureDirectory(GENERATED_PATH)) {
+        http_response_code(500);
+        exit('Failed to create generated directory');
+    }
+
+    $filename = $code . '.png';
+    $filepath = GENERATED_PATH . '/' . $filename;
 }
 
-// Save image
-$extension = ($mimeType === 'image/png') ? 'png' : 'jpg';
-$filename = $code . '.png'; // Always save as PNG for consistency
-$filepath = GENERATED_PATH . '/' . $filename;
-
+// Save image (always as PNG for consistency)
 if (move_uploaded_file($image['tmp_name'], $filepath)) {
     logError("QR image saved: {$filename}", 'INFO');
     http_response_code(200);
-    echo json_encode(['success' => true, 'filename' => $filename]);
+    echo json_encode([
+        'success' => true,
+        'filename' => $filename,
+        'filepath' => $filepath
+    ]);
 } else {
     logError("Failed to save QR image: {$filename}");
     http_response_code(500);
