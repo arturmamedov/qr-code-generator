@@ -395,8 +395,8 @@ async function handleCreateSubmit(event) {
         const qrUrl = result.data.qr_url;
         generateQrPreview(qrUrl);
 
-        // Save QR code image to server
-        await saveQrImage(result.data.code);
+        // Save QR code image to server (with version support)
+        await saveQrImage(result.data.id, result.data.version_id);
 
         // Show success modal
         document.getElementById('successCode').textContent = result.data.code;
@@ -419,7 +419,7 @@ async function handleCreateSubmit(event) {
 /**
  * Save QR code image to server
  */
-async function saveQrImage(code) {
+async function saveQrImage(qrCodeId, versionId) {
     if (!qrCode) return;
 
     try {
@@ -428,14 +428,20 @@ async function saveQrImage(code) {
 
         // Create form data
         const formData = new FormData();
-        formData.append('image', blob, `${code}.png`);
-        formData.append('code', code);
+        formData.append('image', blob, `v${versionId}.png`);
+        formData.append('qr_code_id', qrCodeId);
+        formData.append('version_id', versionId);
 
         // Upload to server
-        await fetch('save-image.php', {
+        const response = await fetch('save-image.php', {
             method: 'POST',
             body: formData
         });
+
+        const result = await response.json();
+        if (!result.success) {
+            console.error('Failed to save QR image:', result);
+        }
     } catch (error) {
         console.error('Error saving QR image:', error);
     }
@@ -570,9 +576,8 @@ async function handleEditSubmit(event) {
     const result = await apiCall('update', formData);
 
     if (result.success) {
-        // Save updated QR code image (use new slug if changed)
-        const finalCode = slugChanged ? newSlug : code;
-        await saveQrImage(finalCode);
+        // Note: Metadata update only - image regeneration moved to version creation
+        // To create a new styled version, use "Create New Version" button (Phase 4)
 
         // Show success modal
         showModal('successModal');
