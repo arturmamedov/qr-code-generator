@@ -521,6 +521,9 @@ function initEditPage() {
             hideModal('successModal');
         });
     }
+
+    // Initialize version gallery
+    initVersionGallery();
 }
 
 /**
@@ -617,6 +620,341 @@ async function handleResetClicks() {
         }, 1000);
     } else {
         showToast(result.message || 'Failed to reset clicks', 'error');
+    }
+}
+
+// ============================================
+// Version Gallery (Edit Page)
+// ============================================
+
+/**
+ * Initialize version gallery
+ */
+async function initVersionGallery() {
+    const galleryContainer = document.getElementById('versionGallery');
+    if (!galleryContainer) return;
+
+    const form = document.getElementById('editForm');
+    const qrCodeId = parseInt(form.dataset.id);
+
+    // Setup create version button
+    const createVersionBtn = document.getElementById('createVersionBtn');
+    if (createVersionBtn) {
+        createVersionBtn.addEventListener('click', () => {
+            showModal('createVersionModal');
+        });
+    }
+
+    // Setup create version form
+    const createVersionForm = document.getElementById('createVersionForm');
+    if (createVersionForm) {
+        createVersionForm.addEventListener('submit', handleCreateVersion);
+    }
+
+    // Load versions
+    await loadVersions(qrCodeId);
+}
+
+/**
+ * Load and display versions
+ */
+async function loadVersions(qrCodeId) {
+    const galleryContainer = document.getElementById('versionGallery');
+    if (!galleryContainer) return;
+
+    try {
+        // Call versions API
+        const response = await fetch('api-versions.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'get_versions',
+                qr_code_id: qrCodeId,
+                limit: 5  // Show first 5 in gallery
+            })
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.message || 'Failed to load versions');
+        }
+
+        const versions = result.data.versions;
+        const totalCount = result.data.total_count;
+
+        // Clear loading message
+        galleryContainer.innerHTML = '';
+
+        if (versions.length === 0) {
+            galleryContainer.innerHTML = '<div class="version-gallery-loading">No versions yet. Create your first version!</div>';
+            return;
+        }
+
+        // Render version cards
+        versions.forEach(version => {
+            const card = createVersionCard(version, qrCodeId);
+            galleryContainer.appendChild(card);
+        });
+
+        // Show "View All" link if more than 5 versions
+        const viewAllContainer = document.getElementById('viewAllVersions');
+        if (viewAllContainer && totalCount > 5) {
+            viewAllContainer.style.display = 'block';
+        }
+
+    } catch (error) {
+        console.error('Error loading versions:', error);
+        galleryContainer.innerHTML = '<div class="version-gallery-loading">Failed to load versions</div>';
+        showToast('Failed to load versions', 'error');
+    }
+}
+
+/**
+ * Create version card element
+ */
+function createVersionCard(version, qrCodeId) {
+    const card = document.createElement('div');
+    card.className = 'version-card' + (version.is_favorite ? ' is-favorite' : '');
+    card.dataset.versionId = version.id;
+
+    const isFavorite = version.is_favorite;
+    const createdDate = new Date(version.created_at).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+
+    card.innerHTML = `
+        <div class="version-card-header">
+            ${isFavorite ? '<span class="version-favorite-badge">⭐ Favorite</span>' : '<span></span>'}
+        </div>
+        <div class="version-image">
+            <img src="${version.image_url}?t=${Date.now()}" alt="${version.version_name}" loading="lazy">
+        </div>
+        <div class="version-name" title="${version.version_name}">${version.version_name}</div>
+        <div class="version-date">${createdDate}</div>
+        <div class="version-actions">
+            ${!isFavorite ? `<button class="version-action-btn primary" onclick="setVersionAsFavorite(${version.id})">Set Favorite</button>` : ''}
+            <button class="version-action-btn" onclick="downloadVersion(${qrCodeId}, ${version.id})">Download</button>
+            <button class="version-action-btn danger" onclick="deleteVersionConfirm(${version.id}, '${version.version_name}', ${isFavorite})">Delete</button>
+        </div>
+    `;
+
+    return card;
+}
+
+/**
+ * Handle create version form submission
+ */
+async function handleCreateVersion(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const editForm = document.getElementById('editForm');
+    const qrCodeId = parseInt(editForm.dataset.id);
+
+    const versionName = document.getElementById('version_name').value.trim();
+    const startFrom = document.querySelector('input[name="start_from"]:checked').value;
+
+    const submitBtn = form.querySelector('[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating...';
+
+    try {
+        const requestData = {
+            action: 'create_version',
+            qr_code_id: qrCodeId,
+            version_name: versionName || undefined
+        };
+
+        // If cloning current version, add clone_from_version_id
+        if (startFrom === 'current') {
+            const versions = await getCurrentVersions(qrCodeId);
+            const favoriteVersion = versions.find(v => v.is_favorite);
+            if (favoriteVersion) {
+                requestData.clone_from_version_id = favoriteVersion.id;
+            }
+        }
+
+        const response = await fetch('api-versions.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.message || 'Failed to create version');
+        }
+
+        // Generate QR code preview
+        const code = editForm.dataset.code;
+        const qrUrl = `${window.location.origin}/${code}`;
+        generateQrPreview(qrUrl);
+
+        // Save QR image
+        await saveQrImage(qrCodeId, result.data.version_id);
+
+        // Reload versions gallery
+        await loadVersions(qrCodeId);
+
+        // Hide modal and reset form
+        hideModal('createVersionModal');
+        form.reset();
+
+        showToast('Version created successfully!', 'success');
+
+    } catch (error) {
+        console.error('Error creating version:', error);
+        showToast(error.message || 'Failed to create version', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Version';
+    }
+}
+
+/**
+ * Get current versions (helper function)
+ */
+async function getCurrentVersions(qrCodeId) {
+    const response = await fetch('api-versions.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: 'get_versions',
+            qr_code_id: qrCodeId
+        })
+    });
+    const result = await response.json();
+    return result.success ? result.data.versions : [];
+}
+
+/**
+ * Set version as favorite
+ */
+async function setVersionAsFavorite(versionId) {
+    try {
+        const response = await fetch('api-versions.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'set_favorite',
+                version_id: versionId
+            })
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.message || 'Failed to set favorite');
+        }
+
+        // Reload versions gallery
+        const form = document.getElementById('editForm');
+        const qrCodeId = parseInt(form.dataset.id);
+        await loadVersions(qrCodeId);
+
+        showToast('Favorite version updated!', 'success');
+
+    } catch (error) {
+        console.error('Error setting favorite:', error);
+        showToast(error.message || 'Failed to set favorite', 'error');
+    }
+}
+
+/**
+ * Download version
+ */
+function downloadVersion(qrCodeId, versionId) {
+    const downloadUrl = `generated/qr-code-${qrCodeId}/v${versionId}.png`;
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `qr-code-v${versionId}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Download started', 'success');
+}
+
+/**
+ * Confirm delete version
+ */
+function deleteVersionConfirm(versionId, versionName, isFavorite) {
+    // Show delete modal
+    document.getElementById('deleteVersionName').innerHTML = `<strong>${versionName}</strong>`;
+
+    if (isFavorite) {
+        document.getElementById('deleteVersionName').innerHTML += '<br><span style="color: var(--warning-color);">⚠️ This is your favorite version. A new favorite will be automatically selected.</span>';
+    }
+
+    showModal('deleteVersionModal');
+
+    // Setup confirm button
+    const confirmBtn = document.getElementById('confirmDeleteVersion');
+    confirmBtn.onclick = () => deleteVersion(versionId);
+}
+
+/**
+ * Delete version
+ */
+async function deleteVersion(versionId) {
+    hideModal('deleteVersionModal');
+
+    try {
+        const response = await fetch('api-versions.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'delete_version',
+                version_id: versionId
+            })
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+            // Check if new favorite is required
+            if (result.data && result.data.requires_new_favorite) {
+                const otherVersions = result.data.other_versions || [];
+                if (otherVersions.length > 0) {
+                    // Automatically select first other version as new favorite
+                    const newFavoriteId = otherVersions[0].id;
+
+                    // Retry delete with new favorite
+                    const retryResponse = await fetch('api-versions.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'delete_version',
+                            version_id: versionId,
+                            new_favorite_id: newFavoriteId
+                        })
+                    });
+
+                    const retryResult = await retryResponse.json();
+                    if (!retryResult.success) {
+                        throw new Error(retryResult.message);
+                    }
+                } else {
+                    throw new Error('Cannot delete the last version');
+                }
+            } else {
+                throw new Error(result.message || 'Failed to delete version');
+            }
+        }
+
+        // Reload versions gallery
+        const form = document.getElementById('editForm');
+        const qrCodeId = parseInt(form.dataset.id);
+        await loadVersions(qrCodeId);
+
+        showToast('Version deleted successfully', 'success');
+
+    } catch (error) {
+        console.error('Error deleting version:', error);
+        showToast(error.message || 'Failed to delete version', 'error');
     }
 }
 
