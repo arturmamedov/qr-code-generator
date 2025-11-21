@@ -737,7 +737,7 @@ function createVersionCard(version, qrCodeId) {
         <div class="version-actions">
             ${!isFavorite ? `<button class="version-action-btn primary" onclick="setVersionAsFavorite(${version.id})">Set Favorite</button>` : ''}
             <button class="version-action-btn" onclick="downloadVersion(${qrCodeId}, ${version.id})">Download</button>
-            <button class="version-action-btn danger" onclick="deleteVersionConfirm(${version.id}, '${version.version_name}', ${isFavorite})">Delete</button>
+            <button class="version-action-btn danger" onclick="deleteVersionConfirm(${version.id}, ${isFavorite})">Delete</button>
         </div>
     `;
 
@@ -775,6 +775,28 @@ async function handleCreateVersion(event) {
             if (favoriteVersion) {
                 requestData.clone_from_version_id = favoriteVersion.id;
             }
+        } else {
+            // If starting from default, capture current form styling
+            requestData.style_config = {
+                width: parseInt(document.getElementById('qr_size')?.value || 300),
+                height: parseInt(document.getElementById('qr_size')?.value || 300),
+                margin: parseInt(document.getElementById('qr_margin')?.value || 10),
+                dotsOptions: {
+                    color: document.getElementById('qr_dots_color')?.value || '#000000',
+                    type: document.getElementById('qr_dots_type')?.value || 'rounded'
+                },
+                backgroundOptions: {
+                    color: document.getElementById('qr_bg_color')?.value || '#ffffff'
+                },
+                cornersSquareOptions: {
+                    color: document.getElementById('qr_dots_color')?.value || '#000000',
+                    type: document.getElementById('qr_corners_type')?.value || 'square'
+                },
+                cornersDotOptions: {
+                    color: document.getElementById('qr_dots_color')?.value || '#000000',
+                    type: document.getElementById('qr_corner_dots_type')?.value || 'square'
+                }
+            };
         }
 
         const response = await fetch('api-versions.php', {
@@ -789,13 +811,19 @@ async function handleCreateVersion(event) {
             throw new Error(result.message || 'Failed to create version');
         }
 
-        // Generate QR code preview
+        // Generate QR code preview with new version's URL
         const code = editForm.dataset.code;
         const qrUrl = `${window.location.origin}/${code}`;
         generateQrPreview(qrUrl);
 
+        // Small delay to ensure QR code is rendered
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         // Save QR image
         await saveQrImage(qrCodeId, result.data.version_id);
+
+        // Small delay to ensure file is written before reloading
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Reload versions gallery
         await loadVersions(qrCodeId);
@@ -845,7 +873,22 @@ async function setVersionAsFavorite(versionId) {
             })
         });
 
-        const result = await response.json();
+        // Check if response is OK
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Server response:', text);
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+
+        // Try to parse JSON
+        const text = await response.text();
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            console.error('Failed to parse JSON. Response text:', text);
+            throw new Error('Invalid JSON response from server');
+        }
 
         if (!result.success) {
             throw new Error(result.message || 'Failed to set favorite');
@@ -881,7 +924,11 @@ function downloadVersion(qrCodeId, versionId) {
 /**
  * Confirm delete version
  */
-function deleteVersionConfirm(versionId, versionName, isFavorite) {
+function deleteVersionConfirm(versionId, isFavorite) {
+    // Get version name from DOM
+    const versionCard = document.querySelector(`.version-card[data-version-id="${versionId}"]`);
+    const versionName = versionCard ? versionCard.querySelector('.version-name').textContent : 'this version';
+
     // Show delete modal
     document.getElementById('deleteVersionName').innerHTML = `<strong>${versionName}</strong>`;
 
