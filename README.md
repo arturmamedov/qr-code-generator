@@ -5,13 +5,16 @@ A self-hosted QR code management system with dynamic redirect capabilities. Crea
 ## ✨ Features
 
 - **Dynamic Redirects**: Change destination URLs without regenerating QR codes
+- **QR Code Versions**: Create multiple styled versions of the same QR code with different colors, logos, and designs
 - **Custom URL Slugs**: Create memorable, branded URLs (e.g., `qr.nestshostels.com/summer-sale`) or auto-generate random codes
-- **Click Tracking**: Monitor how many times each QR code is scanned
-- **Custom Styling**: Customize QR code appearance (colors, dot styles, corners)
-- **Logo Support**: Add your logo to the center of QR codes
+- **Favorite Version System**: Mark your preferred version to display in dashboard and manage multiple designs
+- **Click Tracking**: Monitor how many times each QR code is scanned (tracked across all versions)
+- **Custom Styling**: Customize QR code appearance (colors, dot styles, corners, logos)
+- **Logo Support**: Add different logos to different versions of the same QR code
 - **Multiple Formats**: Download QR codes as PNG, SVG, or JPG
+- **Version Gallery**: View and manage all versions of a QR code in one place
 - **Clean URLs**: User-friendly short URLs with support for hyphens and underscores
-- **Admin Dashboard**: Manage all QR codes from a single interface
+- **Admin Dashboard**: Manage all QR codes from a single interface with version counts
 - **Search & Filter**: Real-time search across titles, codes, destinations, and tags
 - **Column Sorting**: Sort QR codes by title, code, clicks, or creation date
 - **Pagination**: Navigate large datasets with smart pagination controls
@@ -23,9 +26,10 @@ A self-hosted QR code management system with dynamic redirect capabilities. Crea
 
 - **Web Server**: Apache with mod_rewrite enabled
 - **PHP**: Version 8.0 or higher
-- **Database**: MySQL 5.7+ or MariaDB 10.2+
+- **Database**: MySQL 5.7+ or MariaDB 10.2+ (JSON column support required)
 - **Extensions**: MySQLi, GD (for image handling)
 - **Browser**: Modern browser with JavaScript enabled (for admin panel)
+- **Disk Space**: Adequate space for QR code images (each version ~5-50KB depending on styling)
 
 ## 🚀 Installation
 
@@ -196,13 +200,52 @@ Or via FTP: Right-click folder → File Permissions → Set to 755
    - Enter a new slug or click "Auto" to generate a random one
    - If the QR code has clicks, you'll see a warning
    - Confirm the change (this will break existing printed QR codes!)
-4. Regenerate with new styling if desired
-5. Click "Update QR Code"
+4. Click "Update QR Code"
 
 **Important Notes:**
 - Changing the slug will break all existing QR codes that have been printed or distributed
 - The system will warn you if the QR code has clicks before allowing the change
 - If you only need to change the destination URL, you don't need to change the slug!
+- To create different visual designs, use the "Create New Version" feature instead
+
+### Managing QR Code Versions (NEW!)
+
+Each QR code can have multiple styled versions with different colors, logos, and designs - all sharing the same URL.
+
+**Creating a New Version:**
+1. Open the edit page for any QR code
+2. Scroll to the "QR Code Versions" section
+3. Click "+ Create New Version"
+4. Choose:
+   - **Default Style**: Start with default black & white design
+   - **Clone Current Version**: Copy the favorite version's styling
+5. Optionally name the version (e.g., "Blue Print Version")
+6. Click "Create Version"
+7. Customize styling using the QR Code Styling section
+8. The new version is automatically saved
+
+**Setting a Favorite Version:**
+- Each QR code must have one favorite version
+- The favorite version is shown in the dashboard
+- Click "Set Favorite" on any version to make it the favorite
+- The gallery highlights the current favorite with a ⭐ badge
+
+**Downloading Versions:**
+- Click "Download" on any version in the gallery
+- Downloads the specific version as PNG
+- Each version can be downloaded independently
+
+**Deleting Versions:**
+- Click "Delete" on any version
+- Minimum 1 version required (can't delete the last one)
+- If deleting the favorite, another version is automatically set as favorite
+- Deleted versions are permanently removed
+
+**Version Gallery:**
+- Shows up to 5 versions on the edit page
+- If more than 5 versions exist, click "View All Versions"
+- Each version shows: preview, name, creation date, and actions
+- Version count badge appears next to title in dashboard
 
 ### Deleting a QR Code
 
@@ -281,25 +324,38 @@ Or download via FTP and open in text editor.
 /
 ├── index.php              # Admin dashboard
 ├── create.php             # QR creation form
-├── edit.php              # QR edit form
+├── edit.php              # QR edit form (with version gallery)
 ├── api.php               # API endpoint (CRUD operations)
+├── api-versions.php      # Versions API endpoint (NEW)
 ├── r.php                 # Public redirect handler
 ├── save-image.php        # Image upload handler
 ├── config.php            # Configuration (DO NOT COMMIT)
 ├── config.example.php    # Configuration template
-├── database.sql          # Database schema
+├── database.sql          # Database schema (with versions support)
 ├── .htaccess            # Apache configuration
 ├── .htpasswd            # Authentication file (DO NOT COMMIT)
 ├── /includes/
 │   ├── Database.php      # Database class
 │   ├── helpers.php       # Helper functions
+│   ├── version-helpers.php  # Version management functions (NEW)
 │   └── init.php          # Initialization
 ├── /assets/
-│   ├── style.css         # Stylesheet
-│   └── app.js           # JavaScript
+│   ├── style.css         # Stylesheet (Nest Hostels branding)
+│   └── app.js           # JavaScript (with version gallery)
 ├── /generated/           # QR code images (writable)
+│   └── qr-code-{id}/    # Folder per QR code (NEW STRUCTURE)
+│       ├── v1.png       # Version 1 image
+│       ├── v2.png       # Version 2 image
+│       └── logos/       # Logos subfolder
+│           └── logo_v1.png
+├── /migrations/          # Database migration scripts (NEW)
+│   ├── 001-add-qr-versions.sql
+│   ├── 002-migrate-existing-qrs.php
+│   └── README.md
 ├── /logs/               # Error logs (writable)
 └── /docs/               # Documentation
+    ├── BRIEF.md
+    └── FEATURE-QR-VERSIONS.md
 ```
 
 ## 🔐 Security Notes
@@ -380,13 +436,21 @@ define('ENABLE_ERROR_LOG', true);
 
 Features that have been added since initial release:
 
-- ✅ **Custom URL Slugs** - Create memorable, branded URLs
+- ✅ **Custom URL Slugs** - Create memorable, branded URLs (e.g., `/summer-sale`, `/menu-2025`)
+- ✅ **QR Code Versions** - Create multiple styled versions of the same QR code
+  - Multiple designs (colors, logos, styles) for one URL
+  - Favorite version system
+  - Version gallery with up to 5 previews
+  - Independent download for each version
+  - Automatic version management (create, set favorite, delete)
+  - Folder-based storage: `generated/qr-code-{id}/v{n}.png`
 - ✅ **Search and Filter** - Real-time search across all QR code fields
 - ✅ **Column Sorting** - Sort by any column with visual indicators
 - ✅ **Pagination** - Navigate large datasets efficiently
 - ✅ **QR Preview Modal** - Quick preview with full details
 - ✅ **Top Performers Widget** - See your most-clicked QR codes
 - ✅ **Enhanced Copy Feedback** - Visual confirmation when copying URLs
+- ✅ **Nest Hostels Branding** - Custom brand colors and typography
 
 ## 💡 Future Enhancement Ideas
 
