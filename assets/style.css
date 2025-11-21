@@ -640,6 +640,18 @@ small {
     color: var(--gray-600);
 }
 
+.version-count-badge {
+    display: inline-block;
+    background: rgba(83, 206, 209, 0.15);
+    color: var(--primary-dark);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: var(--spacing-sm);
+    vertical-align: middle;
+}
+
 .code-cell {
     display: flex;
     align-items: center;
