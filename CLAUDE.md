@@ -4,19 +4,75 @@ This document provides comprehensive guidance for AI assistants (like Claude) wo
 
 ## 📋 Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Architecture](#architecture)
-3. [Technology Stack](#technology-stack)
-4. [File Structure](#file-structure)
-5. [Database Schema](#database-schema)
-6. [Key Components](#key-components)
-7. [Development Workflows](#development-workflows)
-8. [Coding Conventions](#coding-conventions)
-9. [Common Tasks](#common-tasks)
-10. [Security Guidelines](#security-guidelines)
-11. [Testing & Debugging](#testing--debugging)
-12. [Git Workflow](#git-workflow)
-13. [Deployment](#deployment)
+1. [Development Philosophy](#development-philosophy)
+2. [Project Overview](#project-overview)
+3. [Project Context & Constraints](#project-context--constraints)
+4. [What NOT to Suggest](#what-not-to-suggest)
+5. [Architecture](#architecture)
+6. [Technology Stack](#technology-stack)
+7. [File Structure](#file-structure)
+8. [Database Schema](#database-schema)
+9. [Key Components](#key-components)
+10. [Development Workflows](#development-workflows)
+11. [When to Add Abstraction](#when-to-add-abstraction)
+12. [Coding Conventions](#coding-conventions)
+13. [Common Tasks](#common-tasks)
+14. [Security Guidelines](#security-guidelines)
+15. [Testing & Debugging](#testing--debugging)
+16. [Git Workflow](#git-workflow)
+17. [Deployment](#deployment)
+18. [Communication Style](#communication-style)
+19. [Success Metrics for Suggestions](#success-metrics-for-suggestions)
+20. [Best Practices for AI Assistants](#best-practices-for-ai-assistants)
+
+---
+
+## 💡 Development Philosophy
+
+### Simplicity is Intentional, Not a Limitation
+
+This project's straightforward architecture is **BY DESIGN**, not a lack of sophistication. The codebase prioritizes:
+
+- **Readability over cleverness** - Code that any developer can understand and maintain
+- **Directness over abstraction** - Solving problems with clear, simple solutions
+- **Pragmatism over patterns** - Using what works, not what's "proper"
+- **Maintainability over modernity** - Ensuring freelancers and agencies can work on it
+
+### Core Values
+
+**"If it works and it's readable, it's good code"**
+
+This project values:
+- ✅ Working solutions over theoretical perfection
+- ✅ Simple functions over complex class hierarchies
+- ✅ Direct code over layers of abstraction
+- ✅ Measured improvements over revolutionary changes
+- ✅ Team maintainability over individual cleverness
+
+**DRY and SOLID principles are respected, but pragmatism wins**
+
+Apply principles when they add clear value, not dogmatically:
+- Extract functions when duplicated 3+ times, not at 2
+- Add classes when they genuinely simplify, not "because OOP"
+- Create abstractions when they prevent real problems, not theoretical ones
+
+### Incremental Improvement Approach
+
+**Suggest small, targeted improvements** - not rewrites:
+- Enhance existing patterns instead of replacing them
+- "Step by step" improvements for safer deployments
+- Fix actual problems, not code that "could be better"
+- Maintain backward compatibility when possible
+
+### The "Good Enough" Principle
+
+This project embraces "good enough" solutions:
+- A simple `if/else` beats a Strategy Pattern for 2 cases
+- A procedural function beats a Repository class for basic CRUD
+- Direct array access beats a Translation Manager for simple lookups
+- MySQL prepared statements beat an ORM for straightforward queries
+
+**Perfect is the enemy of shipped.** Working, maintainable code ships. Over-engineered code doesn't.
 
 ---
 
@@ -34,37 +90,246 @@ This document provides comprehensive guidance for AI assistants (like Claude) wo
 
 ---
 
+## 🌍 Project Context & Constraints
+
+### Why This Architecture Exists
+
+The technical choices in this project are **driven by real-world constraints**, not lack of knowledge:
+
+**Deployment Method: FTP to Shared Hosting**
+- ❌ No SSH access
+- ❌ No composer or package managers
+- ❌ No command-line access
+- ❌ No build tools (webpack, vite, etc.)
+- ✅ Just drag-and-drop files via FTP
+
+**Hosting Environment: Basic Shared Hosting**
+- ✅ Apache + PHP + MySQL (that's it)
+- ❌ No Node.js runtime
+- ❌ No Redis or advanced caching
+- ❌ No process managers (PM2, supervisor)
+- ❌ No custom server configuration beyond .htaccess
+
+**Team: Maintainable by Anyone**
+- Must be editable by freelancers and agencies
+- No framework-specific knowledge required
+- Can't assume familiarity with modern tooling
+- Should be understandable with basic PHP knowledge
+
+**Scale: Small to Medium Usage**
+- Hundreds to low thousands of QR codes
+- Not millions of requests per second
+- Not a high-traffic SaaS application
+- Performance is good enough (not over-optimized)
+
+**Budget: Self-Hosted Solution**
+- No cloud services (AWS, GCP, Azure)
+- No third-party APIs (unless free)
+- No monthly SaaS subscriptions
+- One-time setup, low ongoing costs
+
+### These Constraints INFORM the Architecture
+
+**That's why:**
+- We use plain PHP files → No build step required
+- We use mysqli → No composer dependencies
+- We use .htaccess → Works on all shared hosting
+- We use procedural code → Easy for anyone to modify
+- We use vanilla JS → No npm, webpack, or bundlers
+- We use simple functions → Quick to understand and debug
+
+**This isn't "legacy" code** - it's **constraint-aware** code.
+
+---
+
+## 🚫 What NOT to Suggest
+
+### Avoid Over-Engineering
+
+**Don't suggest these unless there's a SPECIFIC, MEASURABLE problem:**
+
+❌ **"Let's use Laravel/Symfony framework"**
+- Adds massive complexity
+- Requires composer (not available via FTP)
+- Over-engineered for simple CRUD
+
+❌ **"Let's implement Repository Pattern"**
+```php
+// DON'T suggest this
+class QrCodeRepository {
+    public function findByCode($code) { }
+    public function save($qrCode) { }
+}
+
+// Current approach is fine
+function getQrCode($code) {
+    return $db->fetchOne("SELECT * FROM qr_codes WHERE code = ?", "s", [$code]);
+}
+```
+
+❌ **"Let's add an ORM (Eloquent, Doctrine)"**
+- mysqli prepared statements are secure and sufficient
+- ORMs add complexity without clear benefit here
+- More to learn, more to maintain
+
+❌ **"Let's use Dependency Injection Container"**
+- Singleton Database class works perfectly
+- DI adds abstraction layers for no gain
+- Makes code harder to follow
+
+❌ **"Let's convert this to classes and interfaces"**
+```php
+// DON'T suggest this
+interface QrCodeServiceInterface {
+    public function generate(QrCodeDTO $dto): QrCodeEntity;
+}
+
+class QrCodeService implements QrCodeServiceInterface { }
+
+// Current approach is fine
+function generateUniqueCode($length = 6, $maxAttempts = 10, $customSlug = null) {
+    // Simple, direct, works
+}
+```
+
+❌ **"Let's add a frontend framework (React, Vue, Svelte)"**
+- Requires build process
+- Requires npm (not available)
+- Vanilla JS works great for this use case
+
+❌ **"Let's use a CSS framework (Bootstrap, Tailwind)"**
+- Custom CSS is already written and works
+- No build step needed
+- Easier to customize
+
+❌ **"Let's implement caching before measuring performance"**
+- Premature optimization
+- Add caching when there's a proven bottleneck
+- Current performance is sufficient
+
+### Don't Fix What Isn't Broken
+
+❌ **"This could be refactored to be more modern"**
+- Modern ≠ Better
+- If it works, is readable, and maintainable → it's good
+
+❌ **"Let's split helpers.php into multiple files"**
+- Only if it grows beyond 500-1000 lines
+- Current organization is fine
+
+❌ **"Let's use static classes instead of functions"**
+- Functions are simpler and work perfectly
+- Static classes add no value here
+
+### Anti-Patterns to Avoid Suggesting
+
+```php
+// ❌ DON'T suggest complex abstractions
+class TranslationManagerFactoryWithCaching {
+    private $strategyPattern;
+    private $cacheLayer;
+    // 200 lines of complexity
+}
+
+// ✅ Simple and direct is better
+function getTranslation($key, $lang = null) {
+    // Straightforward implementation
+}
+```
+
+```php
+// ❌ DON'T suggest service layers for simple CRUD
+class QrCodeService {
+    public function __construct(
+        private QrCodeRepository $repo,
+        private ValidationService $validator,
+        private CacheService $cache
+    ) {}
+}
+
+// ✅ Direct API handlers work fine
+function handleCreate($input) {
+    global $db;
+    // Validate, sanitize, insert
+}
+```
+
+---
+
 ## 🏗️ Architecture
 
 ### Design Philosophy
 
-This project follows a **pragmatic, traditional PHP architecture**:
-- **No frameworks** - Pure PHP with procedural and OOP hybrid approach
-- **Server-side rendering** - PHP generates HTML with embedded data
-- **Vanilla JavaScript** - No frontend framework, minimal JS for interactivity
-- **Single-file pages** - Each page is a complete, self-contained PHP file
-- **Shared utilities** - Common code in `/includes/` directory
+This project follows a **pragmatic, traditional PHP architecture** that prioritizes simplicity and maintainability:
+
+**No frameworks** - Pure PHP with procedural and minimal OOP
+- **Why?** Frameworks add complexity, dependencies, and learning curves
+- **Benefit:** Anyone with basic PHP knowledge can contribute
+- **Trade-off:** Less "elegant" but more maintainable
+
+**Server-side rendering** - PHP generates complete HTML pages
+- **Why?** No build step, no hydration issues, works everywhere
+- **Benefit:** Simple to debug, fast initial page loads
+- **Trade-off:** Less interactive than SPAs (but we don't need that)
+
+**Vanilla JavaScript** - No frontend framework, minimal JS for interactivity
+- **Why?** Modern browsers are powerful enough without frameworks
+- **Benefit:** No npm, no build tools, no version conflicts
+- **Trade-off:** More verbose JS (but more readable too)
+
+**Single-file pages** - Each page is complete and self-contained
+- **Why?** Easy to find code, easy to understand flow
+- **Benefit:** No hunting through 10 files to understand one page
+- **Trade-off:** Some repetition (but explicit beats implicit)
+
+**Shared utilities in /includes/** - Common code in one place
+- **Why?** DRY principle where it adds value
+- **Benefit:** Consistent database access, validation, helpers
+- **Trade-off:** None - this is good abstraction
 
 ### Request Flow
 
-1. **Admin Pages** (index.php, create.php, edit.php):
-   - User → Apache `.htaccess` → HTTP Basic Auth → PHP page → HTML response
+**1. Admin Pages** (index.php, create.php, edit.php):
+```
+User → .htaccess (HTTP Basic Auth) → PHP page → HTML response
+```
+- Simple, secure, works on any Apache server
+- No sessions to manage, no token refresh, no JWT complexity
 
-2. **API Requests** (api.php):
-   - JavaScript → POST to api.php → JSON response → JavaScript handles UI update
+**2. API Requests** (api.php):
+```
+JavaScript → POST to api.php → JSON response → JavaScript updates UI
+```
+- RESTful-ish API (pragmatic, not dogmatic)
+- JSON in, JSON out
+- Protected by same HTTP Basic Auth
 
-3. **Public Redirects** (r.php):
-   - User scans QR → Clean URL (/.htaccess rewrite) → r.php → Database lookup → 301 redirect
+**3. Public Redirects** (r.php):
+```
+User scans QR → Clean URL → .htaccess rewrite → r.php → DB lookup → 301 redirect
+```
+- Fast: Single query, single redirect
+- Tracked: Click counter incremented
+- Bulletproof: Works even if JavaScript disabled
 
-### Pattern: Singleton Database
+### One Database Connection Per Request
 
-The `Database` class uses the Singleton pattern to ensure only one database connection exists per request:
+The `Database` class is a Singleton - one connection, reused throughout the request:
 
 ```php
 $db = Database::getInstance();
 ```
 
-**Why?** Prevents multiple connections, simplifies access throughout the app.
+**Why Singleton here?**
+- ✅ Prevents accidental multiple connections
+- ✅ Simple to use: `$db->fetchOne()` anywhere
+- ✅ No dependency injection complexity
+- ✅ No connection pooling needed (PHP is stateless)
+
+**Why NOT Singleton everywhere?**
+- This is the ONLY singleton in the codebase
+- Used here because it genuinely simplifies
+- Not used as a pattern to follow blindly
 
 ---
 
@@ -384,6 +649,146 @@ fetch('/api.php', {
    - Ensure all user input is sanitized
    - Check for SQL injection vulnerabilities
    - Verify XSS protection
+
+---
+
+## ⚖️ When to Add Abstraction
+
+### Guidelines for Adding Complexity
+
+Abstraction and complexity should solve **actual problems**, not theoretical ones. Use these specific criteria:
+
+### ✅ ADD Abstraction When:
+
+**1. Code duplicated 3+ times**
+```php
+// ✅ Worth extracting
+function validateAndSanitizeInput($input) {
+    // Used in 5+ places
+}
+```
+
+**2. Clear performance benefit (measured, not assumed)**
+```php
+// ✅ Worth caching if proven slow
+function getCachedQrCodes() {
+    // But measure first!
+}
+```
+
+**3. Significantly improves security**
+```php
+// ✅ Worth abstracting for consistency
+function sanitizeOutput($value) {
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+```
+
+**4. Makes debugging easier (not harder)**
+```php
+// ✅ Centralized error logging
+function logError($message, $level = 'ERROR') {
+    // Better than echo/var_dump everywhere
+}
+```
+
+**5. Prevents real bugs we've actually encountered**
+```php
+// ✅ After finding double-slash bugs
+function getQrUrl($code) {
+    return rtrim(BASE_URL, '/') . '/' . $code;
+}
+```
+
+### ❌ DON'T Add Abstraction When:
+
+**1. "It's more proper OOP"**
+```php
+// ❌ Don't do this
+class QrCodeValueObject {
+    private string $code;
+    public function getCode(): string { return $this->code; }
+}
+
+// ✅ This is fine
+$code = $qr['code'];
+```
+
+**2. "It follows SOLID principles better"**
+```php
+// ❌ Unnecessary interface
+interface QrCodeFinderInterface {
+    public function findByCode(string $code): ?QrCode;
+}
+
+// ✅ Simple function works
+function getQrCode($code) { }
+```
+
+**3. "It's more testable" (when not actually testing)**
+```php
+// ❌ Don't add DI just for testability if not testing
+class QrCodeService {
+    public function __construct(
+        private DatabaseInterface $db,
+        private ValidatorInterface $validator
+    ) {}
+}
+
+// ✅ Direct usage when not unit testing
+function handleCreate($input) {
+    global $db;
+    // Simple and works
+}
+```
+
+**4. "It's more scalable" (when scale isn't an issue)**
+```php
+// ❌ Don't pre-optimize
+class CachedQrCodeRepositoryWithRedis { }
+
+// ✅ Start simple, optimize when needed
+function getQrCode($code) {
+    return $db->fetchOne("SELECT ...");
+}
+```
+
+**5. "Future requirements might need it"**
+- YAGNI: You Aren't Gonna Need It
+- Add complexity when requirements are real, not imagined
+- Refactoring later is fine (and easier with simple code)
+
+### The "Rule of Three"
+
+**Don't abstract until:**
+1. First time: Write it inline
+2. Second time: Copy-paste (yes, really)
+3. Third time: Extract to function
+
+**Why?**
+- First two times, you're learning the pattern
+- By the third time, you know what to abstract
+- Premature abstraction is harder to fix than duplication
+
+### Acceptable Complexity
+
+Some complexity is worth it:
+
+✅ **Input validation** - Worth centralizing for security
+✅ **Error logging** - Better than scattered error handling
+✅ **Database wrapper** - Ensures prepared statements everywhere
+✅ **URL building** - Prevents double-slash bugs
+✅ **Sanitization helpers** - Consistent XSS protection
+
+### Unacceptable Complexity
+
+These add little value in this project:
+
+❌ **Service layers** - Overkill for simple CRUD
+❌ **Repository pattern** - mysqli works fine
+❌ **Dependency injection** - Globals are okay in PHP
+❌ **DTOs/Value Objects** - Arrays work perfectly
+❌ **Event systems** - No complex workflows to manage
 
 ---
 
@@ -1009,38 +1414,323 @@ git log --oneline --decorate -10
 
 ---
 
+## 💬 Communication Style
+
+### Be Direct and Honest
+
+**Preferred approach:**
+- Say "This adds complexity" not "This could be considered slightly more complex"
+- Acknowledge trade-offs honestly: "This is simpler but less flexible"
+- Direct feedback over diplomatic hedging
+- "This won't work because..." beats "You might want to consider..."
+
+### Focus on Specific, Measurable Benefits
+
+**Good:**
+- "This reduces database queries from 10 to 1"
+- "This fixes the XSS vulnerability on line 42"
+- "This makes the code 50% shorter without losing clarity"
+
+**Bad:**
+- "This is more maintainable" (vague)
+- "This follows best practices" (which practices?)
+- "This is more modern" (so what?)
+
+### Acknowledge What's Working
+
+**Before suggesting changes:**
+- Point out what's already good
+- Explain why the current approach makes sense
+- Then explain specific improvement
+
+**Example:**
+```
+The current slug validation works well and is secure. However,
+we could add real-time availability checking to improve UX
+by preventing form submission errors. This adds 1 AJAX call
+but reduces user frustration.
+```
+
+### Structure Suggestions Clearly
+
+```
+## Problem: [Specific issue]
+Current: [What happens now]
+Impact: [Why it matters]
+
+## Solution: [Minimal change]
+[Code example that integrates with existing approach]
+
+## Why This Works:
+- Solves X without changing Y
+- Adds N lines of code
+- Improves [specific metric]
+
+## Trade-offs:
+- Adds complexity: [yes/no, how much]
+- Requires testing: [what to test]
+```
+
+### Be Honest About Limits of Knowledge
+
+**Do:**
+- "I'm not certain about Apache config on Windows servers"
+- "This might not work with PHP 7.4, check the docs"
+- "I haven't tested this with mysqli, verify first"
+
+**Don't:**
+- Pretend certainty when unsure
+- Suggest changes without considering edge cases
+- Ignore potential breaking changes
+
+---
+
+## ✅ Success Metrics for Suggestions
+
+### Good Suggestions Should:
+
+✅ **Solve a specific, identifiable problem**
+- Not: "This could be better"
+- Yes: "This prevents the XSS vulnerability found in testing"
+
+✅ **Integrate easily with existing code**
+- Works with current patterns
+- Doesn't require refactoring other files
+- Maintains consistency
+
+✅ **Be understandable by other developers**
+- Junior dev can read and understand
+- No "magic" that requires framework knowledge
+- Clear comments for complex parts
+
+✅ **Provide measurable improvements**
+- Faster: "Reduces load time by X ms"
+- Safer: "Prevents SQL injection in form handler"
+- Clearer: "Reduces function from 50 to 20 lines"
+
+✅ **Maintain or improve site performance**
+- Doesn't add significant overhead
+- Doesn't require new dependencies
+- Works within hosting constraints
+
+### Avoid Suggestions That:
+
+❌ **Require massive refactoring**
+- "Let's restructure the entire project"
+- "Convert all functions to classes"
+- "Migrate to a different tech stack"
+
+❌ **Add unnecessary complexity**
+- Design patterns for their own sake
+- Abstractions that don't solve real problems
+- "Future-proofing" for unlikely scenarios
+
+❌ **Break existing functionality**
+- Changes that aren't backward compatible
+- Modifications without considering dependencies
+- Risky changes without clear benefits
+
+❌ **Introduce new dependencies without clear benefits**
+- "Let's add this library" (when native PHP works)
+- "Install this package" (when we can't use composer)
+- "Use this framework" (adds megabytes for kilobytes of benefit)
+
+❌ **Change working code just to be "more modern"**
+- "This should use arrow functions" (when regular functions are fine)
+- "Convert to classes" (when functions work perfectly)
+- "Use latest PHP features" (when current version is fine)
+
+### Red Flags in Suggestions
+
+Watch out for these phrases in your own suggestions:
+
+🚩 "This is more proper..."
+🚩 "This follows best practices..."
+🚩 "This is more scalable..." (without scale issues)
+🚩 "This is more testable..." (when not testing)
+🚩 "We should use X pattern..." (without explaining benefit)
+🚩 "Future requirements might need..." (YAGNI violation)
+
+### Green Flags in Suggestions
+
+Look for these characteristics:
+
+✅ Solves actual bug or security issue
+✅ Improves performance (measured)
+✅ Makes code clearer (demonstrably)
+✅ Fixes accessibility problem
+✅ Enhances user experience
+✅ Reduces maintenance burden
+
+---
+
 ## 🎯 Best Practices for AI Assistants
 
-When working on this codebase:
+### Respect the Intentional Simplicity
 
-1. **Always read existing code first** before suggesting changes
-2. **Maintain consistency** with existing patterns and style
-3. **Prioritize security** - validate and sanitize all inputs
-4. **Test thoroughly** - provide testing steps with changes
-5. **Document changes** - update README.md and this file
-6. **Keep it simple** - avoid over-engineering
-7. **Respect the stack** - don't introduce unnecessary dependencies
-8. **Consider deployment** - remember this deploys via FTP
+**This codebase is simple BY CHOICE, not by accident.**
 
-### When Suggesting Changes
+- Don't suggest "modernizing" working code
+- Don't propose frameworks or major architectural changes
+- Don't fix code that isn't broken
+- Don't add abstraction "because it's better"
 
-**Good Suggestion:**
+### Understand Before Changing
+
+**Before suggesting any change:**
+
+1. **Read the existing code** - Don't skim, actually read it
+2. **Understand WHY it's written that way** - There's usually a good reason
+3. **Check for dependencies** - `grep -r "functionName"` to see usage
+4. **Consider the constraints** - Remember: FTP deployment, no composer, basic hosting
+5. **Ask: Is this solving a real problem?** - Not a theoretical one
+
+### Focus on Actual Problems
+
+**Suggest changes ONLY when there's:**
+
+✅ **A security vulnerability** - XSS, SQL injection, exposed files
+✅ **A performance bottleneck** - MEASURED, not assumed
+✅ **A bug** - Something doesn't work as intended
+✅ **An accessibility issue** - Screen readers, keyboard nav, contrast
+✅ **A user experience problem** - Confusing UI, unclear errors
+✅ **Missing error handling** - Silent failures, unclear error messages
+
+**DON'T suggest changes for:**
+
+❌ "Code quality" without specific issues
+❌ "Best practices" that don't apply here
+❌ "Maintainability" that adds complexity
+❌ "Scalability" when scale isn't an issue
+❌ "Modern patterns" without clear benefits
+
+### Provide Specific, Actionable Suggestions
+
+**Good example:**
 ```
-I'll add a new field to track QR code categories. This requires:
-1. ALTER TABLE to add 'category' column
-2. Update api.php create/update handlers
-3. Add form field in create.php and edit.php
-4. Update dashboard display in index.php
-5. Add validation in helpers.php
+## Problem: XSS vulnerability in QR code title display
+Line 156 in index.php outputs user input without sanitization.
 
-Testing: Create QR with category, verify saves, displays, and filters correctly.
+## Fix:
+echo htmlspecialchars($qr['title'], ENT_QUOTES, 'UTF-8');
+
+## Impact:
+- Prevents XSS attacks
+- 1 line change
+- No dependencies
+- Backward compatible
 ```
 
-**Bad Suggestion:**
+**Bad example:**
 ```
-Let's refactor this to use Laravel framework and React frontend!
+The codebase could benefit from implementing a Model-View-Controller
+architecture with dependency injection and repository patterns for
+better code organization and maintainability.
 ```
-(❌ Introduces massive dependencies incompatible with deployment method)
+
+### Remember the Constraints
+
+**Every suggestion must work with:**
+- ✅ FTP deployment (no build step)
+- ✅ Shared hosting (no special services)
+- ✅ No composer (no package manager)
+- ✅ Basic Apache + PHP + MySQL
+- ✅ Maintainable by junior developers
+
+**If your suggestion requires:**
+- ❌ Command-line access → Won't work
+- ❌ npm or build tools → Won't work
+- ❌ Composer packages → Won't work
+- ❌ Advanced PHP extensions → Probably won't work
+- ❌ Framework knowledge → Defeats the purpose
+
+### Acknowledge Trade-offs Honestly
+
+**Every change has trade-offs. Be explicit:**
+
+```
+✅ Good:
+"Adding client-side validation improves UX but adds 50 lines of JS.
+The trade-off is worth it because users get immediate feedback."
+
+❌ Bad:
+"We should add validation."
+```
+
+### Examples of Good vs Bad Suggestions
+
+**Good Suggestions:**
+
+✅ "Add index on `click_count` column for faster dashboard sorting"
+- Specific problem: Slow sorting on dashboard
+- Specific solution: Database index
+- Measurable benefit: Faster queries
+- No complexity added
+
+✅ "Sanitize output in edit.php line 89 to prevent XSS"
+- Specific problem: Security vulnerability
+- Specific solution: `htmlspecialchars()`
+- Clear benefit: Security fix
+- Simple change
+
+✅ "Add error message when slug is too long"
+- Specific problem: Silent failure confuses users
+- Specific solution: Show error message
+- User experience improvement
+- 3 lines of code
+
+**Bad Suggestions:**
+
+❌ "Implement Repository Pattern for data access"
+- No specific problem identified
+- Adds significant complexity
+- No measurable benefit
+- Harder to maintain
+
+❌ "Refactor to use PSR-4 autoloading"
+- Requires composer (not available)
+- Doesn't solve a problem
+- Adds build complexity
+- Breaks deployment method
+
+❌ "Convert helper functions to static class methods"
+- Stylistic preference, not improvement
+- Makes code more verbose
+- No actual benefit
+- Change for change's sake
+
+### Testing Your Own Suggestions
+
+**Before suggesting, ask yourself:**
+
+1. **Does this solve a specific problem?** (Not "might be better")
+2. **Can I measure the improvement?** (Faster, safer, clearer)
+3. **Will this work with FTP deployment?** (No build step)
+4. **Is it simpler than the current approach?** (Or equally simple)
+5. **Would a junior dev understand it?** (Maintainability)
+
+**If you answer "no" to any** → Reconsider the suggestion
+
+### Working With This Developer
+
+**This developer values:**
+- ✅ Honest feedback over diplomacy
+- ✅ Practical solutions over elegant architecture
+- ✅ Working code over perfect code
+- ✅ Incremental improvements over rewrites
+- ✅ Simplicity over sophistication
+
+**Avoid:**
+- ❌ Suggesting changes "because OOP"
+- ❌ Proposing frameworks or major refactors
+- ❌ Being overly cautious or diplomatic
+- ❌ Theoretical improvements without real benefits
+
+**Preferred style:**
+- Direct: "This won't work because X"
+- Specific: "Change line 42 to fix Y"
+- Pragmatic: "This is good enough, ship it"
+- Honest: "I'm not sure about Z, test it first"
 
 ---
 
@@ -1055,6 +1745,17 @@ For questions about this codebase:
 
 ---
 
-**Last Updated:** 2025-11-21
-**Version:** 1.0
+**Last Updated:** 2025-11-22
+**Version:** 2.0
 **Maintained By:** Claude Code + Artur Mamedov
+
+**v2.0 Changes:**
+- Added Development Philosophy emphasizing intentional simplicity
+- Added Project Context & Constraints explaining WHY the architecture exists
+- Added "What NOT to Suggest" section with anti-patterns
+- Added "When to Add Abstraction" guidelines with Rule of Three
+- Added Communication Style section for direct, honest feedback
+- Added Success Metrics for Suggestions with red/green flags
+- Completely rewrote Best Practices for AI Assistants
+- Reframed Architecture section with pragmatic tone
+- Added concrete Good vs Bad suggestion examples throughout
