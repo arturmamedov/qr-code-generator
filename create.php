@@ -58,7 +58,7 @@ $pageTitle = 'Create QR Code';
                                        placeholder="e.g., summer-sale, product-launch"
                                        maxlength="33"
                                        autocomplete="off"
-                                       pattern="[a-zA-Z0-9_-]+"
+                                       pattern="[a-zA-Z0-9_\-]+"
                                        title="Only letters, numbers, hyphens, and underscores allowed">
                                 <button type="button" id="autoGenerateBtn" class="btn-auto-generate" title="Auto-generate random code">
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">

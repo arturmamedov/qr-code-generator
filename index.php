@@ -8,13 +8,31 @@
 
 require_once __DIR__ . '/includes/init.php';
 
-// Fetch all QR codes
+// Fetch all QR codes with favorite version info
 $qrCodes = $db->fetchAll(
     "SELECT id, code, title, description, destination_url, click_count, tags,
-            created_at, updated_at
+            favorite_version_id, created_at, updated_at
      FROM qr_codes
      ORDER BY created_at DESC"
 );
+
+// Enhance QR codes with version information
+foreach ($qrCodes as &$qr) {
+    // Get version count
+    $qr['version_count'] = getVersionCount($qr['id']);
+
+    // Get favorite version details
+    $favoriteVersion = getFavoriteVersion($qr['id']);
+    if ($favoriteVersion) {
+        $qr['favorite_version'] = $favoriteVersion;
+        $qr['image_url'] = $favoriteVersion['image_url'];
+    } else {
+        // Fallback for backward compatibility (old QR codes without versions)
+        $qr['image_url'] = BASE_URL . '/generated/' . $qr['code'] . '.png';
+        $qr['favorite_version'] = null;
+    }
+}
+unset($qr); // Break reference
 
 // Calculate total stats
 $totalQrCodes = count($qrCodes);
@@ -178,8 +196,25 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                 <!-- Preview -->
                                 <td class="preview-cell">
                                     <?php
-                                    $imagePath = GENERATED_PATH . '/' . $qr['code'] . '.png';
-                                    if (file_exists($imagePath)):
+                                    // Check if favorite version exists
+                                    if ($qr['favorite_version']):
+                                        $imagePath = getVersionImagePath($qr['id'], $qr['favorite_version']['id']);
+                                        if (file_exists($imagePath)):
+                                    ?>
+                                        <img src="generated/qr-code-<?php echo $qr['id']; ?>/v<?php echo $qr['favorite_version']['id']; ?>.png"
+                                             alt="QR Code"
+                                             class="qr-preview"
+                                             title="<?php echo htmlspecialchars($qr['favorite_version']['version_name']); ?> (Click to view full size)">
+                                    <?php
+                                        else:
+                                    ?>
+                                        <div class="qr-placeholder">No Image</div>
+                                    <?php
+                                        endif;
+                                    else:
+                                        // Fallback for old QR codes without versions
+                                        $imagePath = GENERATED_PATH . '/' . $qr['code'] . '.png';
+                                        if (file_exists($imagePath)):
                                     ?>
                                         <img src="generated/<?php echo $qr['code']; ?>.png"
                                              alt="QR Code"
@@ -187,13 +222,21 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                              title="Click to view full size">
                                     <?php else: ?>
                                         <div class="qr-placeholder">No Image</div>
-                                    <?php endif; ?>
+                                    <?php
+                                        endif;
+                                    endif;
+                                    ?>
                                 </td>
 
                                 <!-- Title -->
                                 <td>
                                     <div class="title-cell">
                                         <strong><?php echo htmlspecialchars($qr['title']); ?></strong>
+                                        <?php if ($qr['version_count'] > 0): ?>
+                                            <span class="version-count-badge" title="<?php echo $qr['version_count']; ?> version<?php echo $qr['version_count'] != 1 ? 's' : ''; ?>">
+                                                <?php echo $qr['version_count']; ?> version<?php echo $qr['version_count'] != 1 ? 's' : ''; ?>
+                                            </span>
+                                        <?php endif; ?>
                                         <?php if ($qr['description']): ?>
                                             <small><?php echo htmlspecialchars($qr['description']); ?></small>
                                         <?php endif; ?>

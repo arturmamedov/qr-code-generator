@@ -1,11 +1,14 @@
 # Configuration files (contain sensitive data)
 config.php
 
-# Generated QR code images
+# Generated QR code images (old format)
 /generated/*.png
 /generated/*.svg
 /generated/*.jpg
 /generated/*.jpeg
+
+# Generated QR code folders (new versioned format)
+/generated/qr-code-*/
 
 # Keep the directory but ignore contents
 !generated/.gitkeep

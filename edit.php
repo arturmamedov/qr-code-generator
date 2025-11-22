@@ -72,7 +72,7 @@ $pageTitle = 'Edit QR Code';
                                        placeholder="e.g., summer-sale, product-launch"
                                        maxlength="33"
                                        autocomplete="off"
-                                       pattern="[a-zA-Z0-9_-]+"
+                                       pattern="[a-zA-Z0-9_\-]+"
                                        title="Double-click to edit slug"
                                        data-original="<?php echo htmlspecialchars($qrCode['code']); ?>"
                                        data-clicks="<?php echo $qrCode['click_count']; ?>"
@@ -166,6 +166,31 @@ $pageTitle = 'Edit QR Code';
                         <button type="button" id="resetClicks" class="btn btn-warning" data-id="<?php echo $qrCode['id']; ?>">
                             Reset Click Counter
                         </button>
+                    </div>
+
+                    <!-- QR Code Versions -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h2>QR Code Versions</h2>
+                            <button type="button" id="createVersionBtn" class="btn btn-primary btn-sm">
+                                <span>+ Create New Version</span>
+                            </button>
+                        </div>
+                        <p class="info-message">💡 Create multiple styled versions of this QR code. All versions share the same URL but have different visual styles.</p>
+
+                        <!-- Version Gallery -->
+                        <div id="versionGallery" class="version-gallery">
+                            <div class="version-gallery-loading">
+                                Loading versions...
+                            </div>
+                        </div>
+
+                        <!-- View All Versions Link (shown if > 5 versions) -->
+                        <div id="viewAllVersions" class="view-all-versions" style="display: none;">
+                            <a href="versions.php?id=<?php echo $qrCode['id']; ?>" class="btn btn-secondary">
+                                View All Versions →
+                            </a>
+                        </div>
                     </div>
 
                     <!-- QR Code Styling -->
@@ -337,6 +362,63 @@ $pageTitle = 'Edit QR Code';
             <div class="modal-actions">
                 <button id="cancelReset" class="btn btn-secondary">Cancel</button>
                 <button id="confirmReset" class="btn btn-danger">Reset Counter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Version Modal -->
+    <div id="createVersionModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Create New QR Code Version</h3>
+                <button type="button" class="modal-close" onclick="hideModal('createVersionModal')">×</button>
+            </div>
+            <form id="createVersionForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="version_name">Version Name</label>
+                        <input type="text"
+                               id="version_name"
+                               name="version_name"
+                               placeholder="e.g., Blue Print Version, Red Digital"
+                               maxlength="100">
+                        <small class="help-text">Give this version a descriptive name (optional - will auto-generate if empty)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Start From</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="start_from" value="default" checked>
+                                <span>Default Style</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="start_from" value="current">
+                                <span>Clone Current Version</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <p class="info-message">💡 After creating, you'll be able to customize the styling for this version.</p>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('createVersionModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Version</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Version Modal -->
+    <div id="deleteVersionModal" class="modal">
+        <div class="modal-content">
+            <h3>Delete Version</h3>
+            <p>Are you sure you want to delete this version?</p>
+            <p class="warning" id="deleteVersionName"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('deleteVersionModal')">Cancel</button>
+                <button type="button" id="confirmDeleteVersion" class="btn btn-danger">Delete Version</button>
             </div>
         </div>
     </div>
