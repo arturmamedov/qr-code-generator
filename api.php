@@ -127,12 +127,59 @@ function handleCreate($input) {
     ]);
 
     if ($insertId) {
-        logError("QR code created: ID={$insertId}, Code={$code}", 'INFO');
+        // Create folder structure for versions
+        if (!ensureQrFolderStructure($insertId)) {
+            // Rollback: delete the QR code entry
+            $db->execute("DELETE FROM qr_codes WHERE id = ?", "i", [$insertId]);
+            jsonResponse(false, null, 'Failed to create folder structure', 500);
+        }
+
+        // Get style config from input or use default
+        $styleConfig = !empty($input['style_config']) ? $input['style_config'] : getDefaultStyleConfig();
+        $styleConfigJson = json_encode($styleConfig);
+
+        // Create first version (v1)
+        $versionSql = "INSERT INTO qr_code_versions
+                       (qr_code_id, version_name, style_config, image_filename, is_favorite, created_at)
+                       VALUES (?, ?, ?, ?, 1, NOW())";
+
+        $versionId = $db->insert($versionSql, "isss", [
+            $insertId,
+            'Default Version',
+            $styleConfigJson,
+            'v0.png' // Temporary
+        ]);
+
+        if (!$versionId) {
+            // Rollback: delete QR code entry and folder
+            $db->execute("DELETE FROM qr_codes WHERE id = ?", "i", [$insertId]);
+            deleteQrFolder($insertId);
+            jsonResponse(false, null, 'Failed to create first version', 500);
+        }
+
+        // Update version with correct filename
+        $imageFilename = getVersionFilename($versionId);
+        $db->execute(
+            "UPDATE qr_code_versions SET image_filename = ? WHERE id = ?",
+            "si",
+            [$imageFilename, $versionId]
+        );
+
+        // Set as favorite version
+        $db->execute(
+            "UPDATE qr_codes SET favorite_version_id = ? WHERE id = ?",
+            "ii",
+            [$versionId, $insertId]
+        );
+
+        logError("QR code created: ID={$insertId}, Code={$code}, Version ID={$versionId}", 'INFO');
 
         jsonResponse(true, [
             'id' => $insertId,
             'code' => $code,
-            'qr_url' => getQrUrl($code)
+            'qr_url' => getQrUrl($code),
+            'version_id' => $versionId,
+            'image_path' => getVersionImagePath($insertId, $versionId)
         ], 'QR code created successfully', 201);
     } else {
         jsonResponse(false, null, 'Failed to create QR code', 500);
@@ -206,9 +253,8 @@ function handleUpdate($input) {
             ], 'This QR code has been clicked ' . $existing['click_count'] . ' times. Changing the slug will break existing links.', 409);
         }
 
-        // Delete old image file
-        $oldImagePath = GENERATED_PATH . '/' . $existing['code'] . '.png';
-        deleteFile($oldImagePath);
+        // Note: We no longer need to rename files since they're stored by ID, not slug
+        // Images are in generated/qr-code-{id}/ which never changes
 
         $newCode = $newSlug;
     }
@@ -254,13 +300,18 @@ function handleDelete($input) {
         jsonResponse(false, null, 'QR code not found', 404);
     }
 
-    // Delete from database
+    // Delete from database (cascade will delete versions)
     $affected = $db->execute("DELETE FROM qr_codes WHERE id = ?", "i", [$id]);
 
     if ($affected > 0) {
-        // Delete generated image file
-        $imagePath = GENERATED_PATH . '/' . $qrCode['code'] . '.png';
-        deleteFile($imagePath);
+        // Delete entire QR folder with all versions and logos
+        deleteQrFolder($id);
+
+        // Also try to delete old-style image file if it exists (backward compatibility)
+        $oldImagePath = GENERATED_PATH . '/' . $qrCode['code'] . '.png';
+        if (file_exists($oldImagePath)) {
+            deleteFile($oldImagePath);
+        }
 
         logError("QR code deleted: ID={$id}, Code={$qrCode['code']}", 'INFO');
         jsonResponse(true, null, 'QR code deleted successfully');
@@ -278,15 +329,24 @@ function handleGetAll() {
     // Fetch all QR codes ordered by most recent first
     $qrCodes = $db->fetchAll(
         "SELECT id, code, title, description, destination_url, click_count, tags,
-                created_at, updated_at
+                favorite_version_id, created_at, updated_at
          FROM qr_codes
          ORDER BY created_at DESC"
     );
 
-    // Add QR URL to each record
+    // Add QR URL and version info to each record
     foreach ($qrCodes as &$qr) {
         $qr['qr_url'] = getQrUrl($qr['code']);
-        $qr['image_url'] = BASE_URL . '/generated/' . $qr['code'] . '.png';
+        $qr['version_count'] = getVersionCount($qr['id']);
+
+        // Get favorite version image
+        $favoriteVersion = getFavoriteVersion($qr['id']);
+        if ($favoriteVersion) {
+            $qr['image_url'] = $favoriteVersion['image_url'];
+        } else {
+            // Fallback for backward compatibility
+            $qr['image_url'] = BASE_URL . '/generated/' . $qr['code'] . '.png';
+        }
     }
 
     jsonResponse(true, $qrCodes, 'QR codes retrieved successfully');
@@ -308,7 +368,7 @@ function handleGetSingle($input) {
     // Fetch QR code
     $qrCode = $db->fetchOne(
         "SELECT id, code, title, description, destination_url, click_count, tags,
-                created_at, updated_at
+                favorite_version_id, created_at, updated_at
          FROM qr_codes
          WHERE id = ?",
         "i",
@@ -317,7 +377,19 @@ function handleGetSingle($input) {
 
     if ($qrCode) {
         $qrCode['qr_url'] = getQrUrl($qrCode['code']);
-        $qrCode['image_url'] = BASE_URL . '/generated/' . $qrCode['code'] . '.png';
+
+        // Get version information
+        $qrCode['version_count'] = getVersionCount($id);
+        $favoriteVersion = getFavoriteVersion($id);
+
+        if ($favoriteVersion) {
+            $qrCode['image_url'] = $favoriteVersion['image_url'];
+            $qrCode['favorite_version'] = $favoriteVersion;
+        } else {
+            // Fallback for backward compatibility
+            $qrCode['image_url'] = BASE_URL . '/generated/' . $qrCode['code'] . '.png';
+        }
+
         jsonResponse(true, $qrCode, 'QR code retrieved successfully');
     } else {
         jsonResponse(false, null, 'QR code not found', 404);

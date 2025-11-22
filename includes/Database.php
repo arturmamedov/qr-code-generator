@@ -191,6 +191,33 @@ class Database {
     }
 
     /**
+     * Begin a transaction
+     *
+     * @return bool True on success, false on failure
+     */
+    public function beginTransaction() {
+        return $this->connection->begin_transaction();
+    }
+
+    /**
+     * Commit a transaction
+     *
+     * @return bool True on success, false on failure
+     */
+    public function commit() {
+        return $this->connection->commit();
+    }
+
+    /**
+     * Rollback a transaction
+     *
+     * @return bool True on success, false on failure
+     */
+    public function rollback() {
+        return $this->connection->rollback();
+    }
+
+    /**
      * Close database connection
      */
     public function close() {
