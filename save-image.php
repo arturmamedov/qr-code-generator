@@ -23,8 +23,8 @@ if (!isset($_FILES['image']) || !isset($_POST['code'])) {
 $code = sanitizeInput($_POST['code']);
 $image = $_FILES['image'];
 
-// Validate code format
-if (!preg_match('/^[A-Za-z0-9]{6,10}$/', $code)) {
+// Validate code format (supports custom slugs with hyphens and underscores, 1-33 chars)
+if (!preg_match('/^[A-Za-z0-9_-]{1,33}$/', $code)) {
     http_response_code(400);
     exit('Invalid code format');
 }
