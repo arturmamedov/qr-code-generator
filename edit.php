@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Edit QR Code Page
  *
@@ -36,6 +37,7 @@ $pageTitle = 'Edit QR Code';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,6 +45,7 @@ $pageTitle = 'Edit QR Code';
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23667eea'/><rect x='10' y='10' width='30' height='30' fill='white'/><rect x='60' y='10' width='30' height='30' fill='white'/><rect x='10' y='60' width='30' height='30' fill='white'/></svg>">
     <link rel="stylesheet" href="assets/style.css">
 </head>
+
 <body>
     <div class="container">
         <!-- Header -->
@@ -66,21 +69,21 @@ $pageTitle = 'Edit QR Code';
                             <label for="new_slug">URL Slug</label>
                             <div class="slug-input-wrapper">
                                 <input type="text"
-                                       id="new_slug"
-                                       name="new_slug"
-                                       value="<?php echo htmlspecialchars($qrCode['code']); ?>"
-                                       placeholder="e.g., summer-sale, product-launch"
-                                       maxlength="33"
-                                       autocomplete="off"
-                                       pattern="[a-zA-Z0-9_\-]+"
-                                       title="Double-click to edit slug"
-                                       data-original="<?php echo htmlspecialchars($qrCode['code']); ?>"
-                                       data-clicks="<?php echo $qrCode['click_count']; ?>"
-                                       class="slug-locked"
-                                       readonly>
+                                    id="new_slug"
+                                    name="new_slug"
+                                    value="<?php echo htmlspecialchars($qrCode['code']); ?>"
+                                    placeholder="e.g., summer-sale, product-launch"
+                                    maxlength="33"
+                                    autocomplete="off"
+                                    pattern="[a-zA-Z0-9_\-]+"
+                                    title="Double-click to edit slug"
+                                    data-original="<?php echo htmlspecialchars($qrCode['code']); ?>"
+                                    data-clicks="<?php echo $qrCode['click_count']; ?>"
+                                    class="slug-locked"
+                                    readonly>
                                 <button type="button" id="autoGenerateBtn" class="btn-auto-generate slug-btn-locked" title="Double-click slug field first to enable" disabled>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M13.65 2.35C12.2 0.9 10.21 0 8 0C3.58 0 0.01 3.58 0.01 8C0.01 12.42 3.58 16 8 16C11.73 16 14.84 13.45 15.73 10H13.65C12.83 12.33 10.61 14 8 14C4.69 14 2 11.31 2 8C2 4.69 4.69 2 8 2C9.66 2 11.14 2.69 12.22 3.78L9 7H16V0L13.65 2.35Z" fill="currentColor"/>
+                                        <path d="M13.65 2.35C12.2 0.9 10.21 0 8 0C3.58 0 0.01 3.58 0.01 8C0.01 12.42 3.58 16 8 16C11.73 16 14.84 13.45 15.73 10H13.65C12.83 12.33 10.61 14 8 14C4.69 14 2 11.31 2 8C2 4.69 4.69 2 8 2C9.66 2 11.14 2.69 12.22 3.78L9 7H16V0L13.65 2.35Z" fill="currentColor" />
                                     </svg>
                                     Auto
                                 </button>
@@ -88,10 +91,10 @@ $pageTitle = 'Edit QR Code';
                             <div id="slugFeedback" class="slug-feedback"></div>
                             <div id="slugSuggestions" class="slug-suggestions" style="display: none;"></div>
                             <?php if ($qrCode['click_count'] > 0): ?>
-                            <div class="warning-message" id="slugWarning" style="display: none;">
-                                ⚠️ This QR code has <strong><?php echo $qrCode['click_count']; ?> click<?php echo $qrCode['click_count'] != 1 ? 's' : ''; ?></strong>.
-                                Changing the slug will break existing QR codes that have been printed or distributed.
-                            </div>
+                                <div class="warning-message" id="slugWarning" style="display: none;">
+                                    ⚠️ This QR code has <strong><?php echo $qrCode['click_count']; ?> click<?php echo $qrCode['click_count'] != 1 ? 's' : ''; ?></strong>.
+                                    Changing the slug will break existing QR codes that have been printed or distributed.
+                                </div>
                             <?php endif; ?>
                             <small class="help-text">
                                 Current URL: <strong><?php echo getQrUrl($qrCode['code']); ?></strong>
@@ -104,42 +107,42 @@ $pageTitle = 'Edit QR Code';
                         <div class="form-group">
                             <label for="title" class="required">Title</label>
                             <input type="text"
-                                   id="title"
-                                   name="title"
-                                   value="<?php echo htmlspecialchars($qrCode['title']); ?>"
-                                   placeholder="e.g., Restaurant Menu, Contact Card"
-                                   required
-                                   maxlength="255">
+                                id="title"
+                                name="title"
+                                value="<?php echo htmlspecialchars($qrCode['title']); ?>"
+                                placeholder="e.g., Restaurant Menu, Contact Card"
+                                required
+                                maxlength="255">
                             <small class="help-text">A descriptive name for this QR code</small>
                         </div>
 
                         <div class="form-group">
                             <label for="description">Description</label>
                             <textarea id="description"
-                                      name="description"
-                                      placeholder="Optional notes about this QR code"
-                                      rows="3"><?php echo htmlspecialchars($qrCode['description']); ?></textarea>
+                                name="description"
+                                placeholder="Optional notes about this QR code"
+                                rows="3"><?php echo htmlspecialchars($qrCode['description']); ?></textarea>
                         </div>
 
                         <div class="form-group">
                             <label for="destination_url" class="required">Destination URL</label>
                             <input type="url"
-                                   id="destination_url"
-                                   name="destination_url"
-                                   value="<?php echo htmlspecialchars($qrCode['destination_url']); ?>"
-                                   placeholder="https://example.com"
-                                   required>
+                                id="destination_url"
+                                name="destination_url"
+                                value="<?php echo htmlspecialchars($qrCode['destination_url']); ?>"
+                                placeholder="https://example.com"
+                                required>
                             <small class="help-text">Where should this QR code redirect to?</small>
                         </div>
 
                         <div class="form-group">
                             <label for="tags">Tags</label>
                             <input type="text"
-                                   id="tags"
-                                   name="tags"
-                                   value="<?php echo htmlspecialchars($qrCode['tags']); ?>"
-                                   placeholder="restaurant, menu, contact (comma-separated)"
-                                   maxlength="255">
+                                id="tags"
+                                name="tags"
+                                value="<?php echo htmlspecialchars($qrCode['tags']); ?>"
+                                placeholder="restaurant, menu, contact (comma-separated)"
+                                maxlength="255">
                             <small class="help-text">Optional tags for organizing your QR codes</small>
                         </div>
                     </div>
@@ -172,9 +175,6 @@ $pageTitle = 'Edit QR Code';
                     <div class="form-section">
                         <div class="section-header">
                             <h2>QR Code Versions</h2>
-                            <button type="button" id="createVersionBtn" class="btn btn-primary btn-sm">
-                                <span>+ Create New Version</span>
-                            </button>
                         </div>
                         <p class="info-message">💡 Create multiple styled versions of this QR code. All versions share the same URL but have different visual styles.</p>
 
@@ -202,23 +202,23 @@ $pageTitle = 'Edit QR Code';
                             <div class="form-group">
                                 <label for="qr_size">Size (pixels)</label>
                                 <input type="number"
-                                       id="qr_size"
-                                       name="qr_size"
-                                       value="300"
-                                       min="200"
-                                       max="1000"
-                                       step="50">
+                                    id="qr_size"
+                                    name="qr_size"
+                                    value="300"
+                                    min="200"
+                                    max="1000"
+                                    step="50">
                             </div>
 
                             <div class="form-group">
                                 <label for="qr_margin">Margin</label>
                                 <input type="number"
-                                       id="qr_margin"
-                                       name="qr_margin"
-                                       value="10"
-                                       min="0"
-                                       max="50"
-                                       step="5">
+                                    id="qr_margin"
+                                    name="qr_margin"
+                                    value="10"
+                                    min="0"
+                                    max="50"
+                                    step="5">
                             </div>
                         </div>
 
@@ -238,17 +238,17 @@ $pageTitle = 'Edit QR Code';
                             <div class="form-group">
                                 <label for="qr_dots_color">Dots Color</label>
                                 <input type="color"
-                                       id="qr_dots_color"
-                                       name="qr_dots_color"
-                                       value="#000000">
+                                    id="qr_dots_color"
+                                    name="qr_dots_color"
+                                    value="#000000">
                             </div>
 
                             <div class="form-group">
                                 <label for="qr_bg_color">Background Color</label>
                                 <input type="color"
-                                       id="qr_bg_color"
-                                       name="qr_bg_color"
-                                       value="#ffffff">
+                                    id="qr_bg_color"
+                                    name="qr_bg_color"
+                                    value="#ffffff">
                             </div>
                         </div>
 
@@ -277,9 +277,9 @@ $pageTitle = 'Edit QR Code';
                         <div class="form-group">
                             <label for="qr_logo">Upload Logo</label>
                             <input type="file"
-                                   id="qr_logo"
-                                   name="qr_logo"
-                                   accept="image/png, image/jpeg, image/jpg">
+                                id="qr_logo"
+                                name="qr_logo"
+                                accept="image/png, image/jpeg, image/jpg">
                             <small class="help-text">Add a logo in the center of your QR code (PNG, JPG)</small>
                         </div>
 
@@ -296,6 +296,11 @@ $pageTitle = 'Edit QR Code';
                         </button>
                         <button type="submit" class="btn btn-primary">
                             Update QR Code
+                        </button>
+                    </div>
+                    <div class="form-actions text-center">
+                        <button type="button" id="createVersionBtn" class="btn btn-primary btn-sm">
+                            <span>+ Create New Version</span>
                         </button>
                     </div>
                 </form>
@@ -378,10 +383,10 @@ $pageTitle = 'Edit QR Code';
                     <div class="form-group">
                         <label for="version_name">Version Name</label>
                         <input type="text"
-                               id="version_name"
-                               name="version_name"
-                               placeholder="e.g., Blue Print Version, Red Digital"
-                               maxlength="100">
+                            id="version_name"
+                            name="version_name"
+                            placeholder="e.g., Blue Print Version, Red Digital"
+                            maxlength="100">
                         <small class="help-text">Give this version a descriptive name (optional - will auto-generate if empty)</small>
                     </div>
 
@@ -430,4 +435,5 @@ $pageTitle = 'Edit QR Code';
     <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"></script>
     <script src="assets/app.js"></script>
 </body>
+
 </html>

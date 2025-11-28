@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Admin Dashboard
  *
@@ -43,6 +44,7 @@ $pageTitle = 'QR Code Manager - Dashboard';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,6 +52,7 @@ $pageTitle = 'QR Code Manager - Dashboard';
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23667eea'/><rect x='10' y='10' width='30' height='30' fill='white'/><rect x='60' y='10' width='30' height='30' fill='white'/><rect x='10' y='60' width='30' height='30' fill='white'/></svg>">
     <link rel="stylesheet" href="assets/style.css">
 </head>
+
 <body>
     <div class="container">
         <!-- Header -->
@@ -82,13 +85,13 @@ $pageTitle = 'QR Code Manager - Dashboard';
                 // Calculate average clicks
                 $avgClicks = $totalQrCodes > 0 ? round($totalClicks / $totalQrCodes, 1) : 0;
             ?>
-            <div class="stat-card">
-                <div class="stat-icon">📈</div>
-                <div class="stat-content">
-                    <div class="stat-value"><?php echo number_format($avgClicks, 1); ?></div>
-                    <div class="stat-label">Average Clicks</div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-value"><?php echo number_format($avgClicks, 1); ?></div>
+                        <div class="stat-label">Average Clicks</div>
+                    </div>
                 </div>
-            </div>
             <?php endif; ?>
         </div>
 
@@ -96,7 +99,7 @@ $pageTitle = 'QR Code Manager - Dashboard';
         <?php if (!empty($qrCodes)):
             // Get top 5 QR codes by clicks
             $topQrCodes = $qrCodes;
-            usort($topQrCodes, function($a, $b) {
+            usort($topQrCodes, function ($a, $b) {
                 return $b['click_count'] - $a['click_count'];
             });
             $topQrCodes = array_slice($topQrCodes, 0, 5);
@@ -112,46 +115,46 @@ $pageTitle = 'QR Code Manager - Dashboard';
 
             if ($hasClicks):
         ?>
-        <div class="top-performers-widget">
-            <h3>🏆 Top Performers</h3>
-            <div class="top-performers-list">
-                <?php foreach ($topQrCodes as $index => $qr):
-                    if ($qr['click_count'] > 0):
-                ?>
-                    <div class="top-performer-item">
-                        <div class="performer-rank"><?php echo $index + 1; ?></div>
-                        <div class="performer-info">
-                            <div class="performer-title"><?php echo htmlspecialchars($qr['title']); ?></div>
-                            <div class="performer-code"><?php echo $qr['code']; ?></div>
-                        </div>
-                        <div class="performer-clicks">
-                            <div class="clicks-value"><?php echo number_format($qr['click_count']); ?></div>
-                            <div class="clicks-label">clicks</div>
-                        </div>
+                <div class="top-performers-widget">
+                    <h3>🏆 Top Performers</h3>
+                    <div class="top-performers-list">
+                        <?php foreach ($topQrCodes as $index => $qr):
+                            if ($qr['click_count'] > 0):
+                        ?>
+                                <div class="top-performer-item">
+                                    <div class="performer-rank"><?php echo $index + 1; ?></div>
+                                    <div class="performer-info">
+                                        <div class="performer-title"><?php echo htmlspecialchars($qr['title']); ?></div>
+                                        <div class="performer-code"><?php echo $qr['code']; ?></div>
+                                    </div>
+                                    <div class="performer-clicks">
+                                        <div class="clicks-value"><?php echo number_format($qr['click_count']); ?></div>
+                                        <div class="clicks-label">clicks</div>
+                                    </div>
+                                </div>
+                        <?php
+                            endif;
+                        endforeach; ?>
                     </div>
-                <?php
-                    endif;
-                endforeach; ?>
-            </div>
-        </div>
+                </div>
         <?php
             endif;
         endif; ?>
 
         <!-- Search & Filter -->
         <?php if (!empty($qrCodes)): ?>
-        <div class="search-section">
-            <div class="search-container">
-                <input type="text"
-                       id="searchInput"
-                       class="search-input"
-                       placeholder="🔍 Search by title, code, destination, or tags...">
-                <button id="clearSearch" class="btn-clear-search" style="display: none;">✕</button>
+            <div class="search-section">
+                <div class="search-container">
+                    <input type="text"
+                        id="searchInput"
+                        class="search-input"
+                        placeholder="🔍 Search by title, code, destination, or tags...">
+                    <button id="clearSearch" class="btn-clear-search" style="display: none;">✕</button>
+                </div>
+                <div class="search-results-info">
+                    <span id="resultsCount">Showing all <?php echo $totalQrCodes; ?> QR codes</span>
+                </div>
             </div>
-            <div class="search-results-info">
-                <span id="resultsCount">Showing all <?php echo $totalQrCodes; ?> QR codes</span>
-            </div>
-        </div>
         <?php endif; ?>
 
         <!-- QR Codes Table -->
@@ -203,28 +206,28 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                         $imageDownloadUrl = "generated/qr-code-{$qr['id']}/v{$qr['favorite_version']['id']}.png";
                                         if (file_exists($imagePath)):
                                     ?>
-                                        <img src="generated/qr-code-<?php echo $qr['id']; ?>/v<?php echo $qr['favorite_version']['id']; ?>.png"
-                                             alt="QR Code"
-                                             class="qr-preview"
-                                             title="<?php echo htmlspecialchars($qr['favorite_version']['version_name']); ?> (Click to view full size)">
-                                    <?php
+                                            <img src="generated/qr-code-<?php echo $qr['id']; ?>/v<?php echo $qr['favorite_version']['id']; ?>.png"
+                                                alt="QR Code"
+                                                class="qr-preview"
+                                                title="<?php echo htmlspecialchars($qr['favorite_version']['version_name']); ?> (Click to view full size)">
+                                        <?php
                                         else:
-                                    ?>
-                                        <div class="qr-placeholder">No Image</div>
-                                    <?php
+                                        ?>
+                                            <div class="qr-placeholder">No Image</div>
+                                        <?php
                                         endif;
                                     else:
                                         // Fallback for old QR codes without versions
                                         $imagePath = GENERATED_PATH . '/' . $qr['code'] . '.png';
                                         $imageDownloadUrl = "generated/{$qr['code']}.png";
                                         if (file_exists($imagePath)):
-                                    ?>
-                                        <img src="generated/<?php echo $qr['code']; ?>.png"
-                                             alt="QR Code"
-                                             class="qr-preview"
-                                             title="Click to view full size">
-                                    <?php else: ?>
-                                        <div class="qr-placeholder">No Image</div>
+                                        ?>
+                                            <img src="generated/<?php echo $qr['code']; ?>.png"
+                                                alt="QR Code"
+                                                class="qr-preview"
+                                                title="Click to view full size">
+                                        <?php else: ?>
+                                            <div class="qr-placeholder">No Image</div>
                                     <?php
                                         endif;
                                     endif;
@@ -234,7 +237,9 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                 <!-- Title -->
                                 <td>
                                     <div class="title-cell">
-                                        <strong><?php echo htmlspecialchars($qr['title']); ?></strong>
+                                        <a href="edit.php?id=<?php echo $qr['id']; ?>">
+                                            <strong><?php echo htmlspecialchars($qr['title']); ?></strong>
+                                        </a>
                                         <?php if ($qr['version_count'] > 0): ?>
                                             <span class="version-count-badge" title="<?php echo $qr['version_count']; ?> version<?php echo $qr['version_count'] != 1 ? 's' : ''; ?>">
                                                 <?php echo $qr['version_count']; ?> version<?php echo $qr['version_count'] != 1 ? 's' : ''; ?>
@@ -251,8 +256,8 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                     <div class="code-cell">
                                         <code class="qr-code"><?php echo $qr['code']; ?></code>
                                         <button class="btn-copy"
-                                                data-url="<?php echo getQrUrl($qr['code']); ?>"
-                                                title="Copy URL">
+                                            data-url="<?php echo getQrUrl($qr['code']); ?>"
+                                            title="Copy URL">
                                             📋
                                         </button>
                                     </div>
@@ -261,9 +266,9 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                 <!-- Destination URL -->
                                 <td class="url-cell">
                                     <a href="<?php echo htmlspecialchars($qr['destination_url']); ?>"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       class="destination-url">
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="destination-url">
                                         <?php
                                         $url = $qr['destination_url'];
                                         echo htmlspecialchars(strlen($url) > 40 ? substr($url, 0, 40) . '...' : $url);
@@ -285,26 +290,26 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                 <td class="actions-cell">
                                     <div class="action-buttons">
                                         <a href="edit.php?id=<?php echo $qr['id']; ?>"
-                                           class="btn-action btn-edit"
-                                           title="Edit">
+                                            class="btn-action btn-edit"
+                                            title="Edit">
                                             ✏️
                                         </a>
 
                                         <?php if (file_exists($imagePath)): ?>
                                             <a href="<?php echo $imageDownloadUrl; ?>"
-                                               download="qr-<?php echo $qr['code']; ?>.png"
-                                               class="btn-action btn-download"
-                                               title="Download">
+                                                download="qr-<?php echo $qr['code']; ?>.png"
+                                                class="btn-action btn-download"
+                                                title="Download">
                                                 ⬇️
                                             </a>
                                         <?php endif; ?>
 
-                                        <button class="btn-action btn-delete"
+                                        <!-- <button class="btn-action btn-delete"
                                                 data-id="<?php echo $qr['id']; ?>"
                                                 data-code="<?php echo $qr['code']; ?>"
                                                 title="Delete">
                                             🗑️
-                                        </button>
+                                        </button> -->
                                     </div>
                                 </td>
                             </tr>
@@ -443,4 +448,5 @@ $pageTitle = 'QR Code Manager - Dashboard';
 
     <script src="assets/app.js"></script>
 </body>
+
 </html>
