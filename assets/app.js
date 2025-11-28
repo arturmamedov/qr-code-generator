@@ -420,7 +420,10 @@ async function handleCreateSubmit(event) {
  * Save QR code image to server
  */
 async function saveQrImage(qrCodeId, versionId) {
-    if (!qrCode) return;
+    if (!qrCode) {
+        console.warn('No QR code instance available to save');
+        return false;
+    }
 
     try {
         // Get blob from QR code
@@ -438,12 +441,27 @@ async function saveQrImage(qrCodeId, versionId) {
             body: formData
         });
 
+        // Check if server responded successfully
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Failed to save QR image - HTTP error:', errorText);
+            showToast('Warning: QR code created but image save failed', 'warning');
+            return false;
+        }
+
+        // Parse response
         const result = await response.json();
         if (!result.success) {
             console.error('Failed to save QR image:', result);
+            showToast('Warning: QR code created but image save failed', 'warning');
+            return false;
         }
+
+        return true;
     } catch (error) {
         console.error('Error saving QR image:', error);
+        showToast('Warning: QR code created but image save failed', 'warning');
+        return false;
     }
 }
 
@@ -1550,9 +1568,18 @@ function showQrPreview(row) {
     const clicks = row.dataset.clicks;
     const created = row.dataset.created;
     const tags = row.dataset.tags;
+    const favoriteVersionId = row.dataset.favoriteVersionId;
+
+    // Build image path (use versioned path if available, fallback to legacy path)
+    let imagePath;
+    if (favoriteVersionId) {
+        imagePath = `generated/qr-code-${qrId}/v${favoriteVersionId}.png`;
+    } else {
+        imagePath = `generated/${code}.png`;
+    }
 
     // Populate modal
-    document.getElementById('previewModalImage').src = `generated/${code}.png`;
+    document.getElementById('previewModalImage').src = imagePath;
     document.getElementById('previewModalTitle').textContent = title;
     document.getElementById('previewModalCode').textContent = code;
 
@@ -1596,7 +1623,7 @@ function showQrPreview(row) {
 
     // Action buttons
     document.getElementById('previewEditBtn').href = `edit.php?id=${qrId}`;
-    document.getElementById('previewDownloadBtn').href = `generated/${code}.png`;
+    document.getElementById('previewDownloadBtn').href = imagePath;
     document.getElementById('previewDownloadBtn').download = `qr-${code}.png`;
 
     // Copy buttons
