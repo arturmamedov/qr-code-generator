@@ -420,7 +420,10 @@ async function handleCreateSubmit(event) {
  * Save QR code image to server
  */
 async function saveQrImage(qrCodeId, versionId) {
-    if (!qrCode) return;
+    if (!qrCode) {
+        console.warn('No QR code instance available to save');
+        return false;
+    }
 
     try {
         // Get blob from QR code
@@ -438,12 +441,27 @@ async function saveQrImage(qrCodeId, versionId) {
             body: formData
         });
 
+        // Check if server responded successfully
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Failed to save QR image - HTTP error:', errorText);
+            showToast('Warning: QR code created but image save failed', 'warning');
+            return false;
+        }
+
+        // Parse response
         const result = await response.json();
         if (!result.success) {
             console.error('Failed to save QR image:', result);
+            showToast('Warning: QR code created but image save failed', 'warning');
+            return false;
         }
+
+        return true;
     } catch (error) {
         console.error('Error saving QR image:', error);
+        showToast('Warning: QR code created but image save failed', 'warning');
+        return false;
     }
 }
 
