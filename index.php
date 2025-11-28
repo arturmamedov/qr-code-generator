@@ -200,6 +200,7 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                     // Check if favorite version exists
                                     if ($qr['favorite_version']):
                                         $imagePath = getVersionImagePath($qr['id'], $qr['favorite_version']['id']);
+                                        $imageDownloadUrl = "generated/qr-code-{$qr['id']}/v{$qr['favorite_version']['id']}.png";
                                         if (file_exists($imagePath)):
                                     ?>
                                         <img src="generated/qr-code-<?php echo $qr['id']; ?>/v<?php echo $qr['favorite_version']['id']; ?>.png"
@@ -215,6 +216,7 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                     else:
                                         // Fallback for old QR codes without versions
                                         $imagePath = GENERATED_PATH . '/' . $qr['code'] . '.png';
+                                        $imageDownloadUrl = "generated/{$qr['code']}.png";
                                         if (file_exists($imagePath)):
                                     ?>
                                         <img src="generated/<?php echo $qr['code']; ?>.png"
@@ -289,7 +291,7 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                         </a>
 
                                         <?php if (file_exists($imagePath)): ?>
-                                            <a href="generated/<?php echo $qr['code']; ?>.png"
+                                            <a href="<?php echo $imageDownloadUrl; ?>"
                                                download="qr-<?php echo $qr['code']; ?>.png"
                                                class="btn-action btn-download"
                                                title="Download">
