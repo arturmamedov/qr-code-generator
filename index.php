@@ -192,7 +192,8 @@ $pageTitle = 'QR Code Manager - Dashboard';
                                 data-destination="<?php echo htmlspecialchars(strtolower($qr['destination_url'])); ?>"
                                 data-tags="<?php echo htmlspecialchars(strtolower($qr['tags'])); ?>"
                                 data-clicks="<?php echo $qr['click_count']; ?>"
-                                data-created="<?php echo $qr['created_at']; ?>">
+                                data-created="<?php echo $qr['created_at']; ?>"
+                                data-favorite-version-id="<?php echo isset($qr['favorite_version']['id']) ? $qr['favorite_version']['id'] : ''; ?>">
                                 <!-- Preview -->
                                 <td class="preview-cell">
                                     <?php

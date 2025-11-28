@@ -1568,9 +1568,18 @@ function showQrPreview(row) {
     const clicks = row.dataset.clicks;
     const created = row.dataset.created;
     const tags = row.dataset.tags;
+    const favoriteVersionId = row.dataset.favoriteVersionId;
+
+    // Build image path (use versioned path if available, fallback to legacy path)
+    let imagePath;
+    if (favoriteVersionId) {
+        imagePath = `generated/qr-code-${qrId}/v${favoriteVersionId}.png`;
+    } else {
+        imagePath = `generated/${code}.png`;
+    }
 
     // Populate modal
-    document.getElementById('previewModalImage').src = `generated/${code}.png`;
+    document.getElementById('previewModalImage').src = imagePath;
     document.getElementById('previewModalTitle').textContent = title;
     document.getElementById('previewModalCode').textContent = code;
 
@@ -1614,7 +1623,7 @@ function showQrPreview(row) {
 
     // Action buttons
     document.getElementById('previewEditBtn').href = `edit.php?id=${qrId}`;
-    document.getElementById('previewDownloadBtn').href = `generated/${code}.png`;
+    document.getElementById('previewDownloadBtn').href = imagePath;
     document.getElementById('previewDownloadBtn').download = `qr-${code}.png`;
 
     // Copy buttons
