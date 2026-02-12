@@ -9,11 +9,17 @@
  * 4. DO NOT commit config.php to version control!
  */
 
-// Database Configuration
+// Database Driver: 'mysql' or 'sqlite'
+define('DB_DRIVER', 'mysql');
+
+// MySQL Configuration (used when DB_DRIVER is 'mysql')
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'your_database_name');
 define('DB_USER', 'your_database_user');
 define('DB_PASS', 'your_database_password');
+
+// SQLite Configuration (used when DB_DRIVER is 'sqlite')
+define('DB_SQLITE_PATH', __DIR__ . '/data/qr_codes.db');
 
 // Application Configuration
 define('BASE_URL', 'https://qr.nestshostels.com');

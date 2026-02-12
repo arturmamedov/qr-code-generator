@@ -21,8 +21,12 @@ RewriteBase /
     Deny from all
 </Files>
 
-# Protect database.sql from direct access
+# Protect database schema files from direct access
 <Files "database.sql">
+    Order Allow,Deny
+    Deny from all
+</Files>
+<Files "database-sqlite.sql">
     Order Allow,Deny
     Deny from all
 </Files>
@@ -35,6 +39,12 @@ RewriteBase /
 
 # Block access to logs directory
 <DirectoryMatch "logs">
+    Order Allow,Deny
+    Deny from all
+</DirectoryMatch>
+
+# Block access to data directory (SQLite database files)
+<DirectoryMatch "data">
     Order Allow,Deny
     Deny from all
 </DirectoryMatch>

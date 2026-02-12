@@ -141,13 +141,14 @@ function handleCreate($input) {
         // Create first version (v1)
         $versionSql = "INSERT INTO qr_code_versions
                        (qr_code_id, version_name, style_config, image_filename, is_favorite, created_at)
-                       VALUES (?, ?, ?, ?, 1, NOW())";
+                       VALUES (?, ?, ?, ?, 1, ?)";
 
-        $versionId = $db->insert($versionSql, "isss", [
+        $versionId = $db->insert($versionSql, "issss", [
             $insertId,
             'Default Version',
             $styleConfigJson,
-            'v0.png' // Temporary
+            'v0.png', // Temporary
+            getCurrentTimestamp()
         ]);
 
         if (!$versionId) {
@@ -261,15 +262,16 @@ function handleUpdate($input) {
 
     // Update database
     $sql = "UPDATE qr_codes
-            SET code = ?, title = ?, description = ?, destination_url = ?, tags = ?, updated_at = NOW()
+            SET code = ?, title = ?, description = ?, destination_url = ?, tags = ?, updated_at = ?
             WHERE id = ?";
 
-    $affected = $db->execute($sql, "sssssi", [
+    $affected = $db->execute($sql, "ssssssi", [
         $newCode,
         $title,
         $description,
         $destinationUrl,
         $tags,
+        getCurrentTimestamp(),
         $id
     ]);
 

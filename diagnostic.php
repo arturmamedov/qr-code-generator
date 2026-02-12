@@ -13,7 +13,12 @@ echo "✓ PHP Version: " . PHP_VERSION . "\n";
 
 // Required Extensions
 echo "\n=== PHP Extensions ===\n";
-$required = ['mysqli', 'gd', 'json'];
+$required = ['gd', 'json'];
+if (defined('DB_DRIVER') && DB_DRIVER === 'sqlite') {
+    $required[] = 'pdo_sqlite';
+} else {
+    $required[] = 'pdo_mysql';
+}
 foreach ($required as $ext) {
     $status = extension_loaded($ext) ? "✓ INSTALLED" : "✗ MISSING";
     echo "$status: $ext\n";

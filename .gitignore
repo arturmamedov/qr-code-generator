@@ -31,6 +31,11 @@ config.php
 .DS_Store
 Thumbs.db
 
+# SQLite database files
+/data/*.db
+/data/*.db-wal
+/data/*.db-shm
+
 # Temporary files
 *.tmp
 *.bak
