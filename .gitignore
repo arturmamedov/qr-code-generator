@@ -1,5 +1,6 @@
 # Configuration files (contain sensitive data)
 config.php
+.env
 
 # Generated QR code images (old format)
 /generated/*.png

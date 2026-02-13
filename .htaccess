@@ -21,6 +21,16 @@ RewriteBase /
     Deny from all
 </Files>
 
+# Protect .env files from direct access
+<Files ".env">
+    Order Allow,Deny
+    Deny from all
+</Files>
+<Files ".env.example">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
 # Protect database schema files from direct access
 <Files "database.sql">
     Order Allow,Deny
