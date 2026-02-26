@@ -9,8 +9,19 @@
 // Start session for admin authentication
 session_start();
 
-// Load configuration
-require_once __DIR__ . '/../config.php';
+// Load environment helper (must be before config)
+require_once __DIR__ . '/env-loader.php';
+
+// Load .env file if it exists (local development)
+loadEnvFile(__DIR__ . '/../.env');
+
+// Load configuration (defines all constants)
+if (file_exists(__DIR__ . '/../config.php')) {
+    require_once __DIR__ . '/../config.php';
+} else {
+    // No config.php (e.g., Coolify deployment) — use config.example.php
+    require_once __DIR__ . '/../config.example.php';
+}
 
 // Load database class
 require_once __DIR__ . '/Database.php';
@@ -66,6 +77,13 @@ set_exception_handler(function($exception) {
         die($message);
     }
 });
+
+// Validate required configuration before attempting database connection
+if (defined('DB_DRIVER') && DB_DRIVER === 'sqlite') {
+    validateConfig(['BASE_URL']);
+} else {
+    validateConfig(['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASS', 'BASE_URL']);
+}
 
 // Ensure required directories exist
 ensureDirectory(GENERATED_PATH);

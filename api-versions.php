@@ -116,13 +116,14 @@ function handleCreateVersion($input) {
     $styleConfigJson = json_encode($styleConfig);
     $sql = "INSERT INTO qr_code_versions
             (qr_code_id, version_name, style_config, image_filename, is_favorite, created_at)
-            VALUES (?, ?, ?, ?, 0, NOW())";
+            VALUES (?, ?, ?, ?, 0, ?)";
 
-    $versionId = $db->insert($sql, "isss", [
+    $versionId = $db->insert($sql, "issss", [
         $qrCodeId,
         $versionName,
         $styleConfigJson,
-        'v0.png' // Temporary, will update below
+        'v0.png', // Temporary, will update below
+        getCurrentTimestamp()
     ]);
 
     if (!$versionId) {
@@ -336,7 +337,9 @@ function handleUpdateVersion($input) {
     }
 
     // Add updated_at
-    $updates[] = "updated_at = NOW()";
+    $updates[] = "updated_at = ?";
+    $types .= "s";
+    $params[] = getCurrentTimestamp();
 
     // Add version ID to params
     $types .= "i";

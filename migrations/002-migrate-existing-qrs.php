@@ -20,8 +20,7 @@ echo "QR Code Versions Migration Script\n";
 echo "===========================================\n\n";
 
 // Check if qr_code_versions table exists
-$tableCheck = $db->fetchOne("SHOW TABLES LIKE 'qr_code_versions'");
-if (!$tableCheck) {
+if (!$db->tableExists('qr_code_versions')) {
     die("ERROR: qr_code_versions table does not exist. Please run 001-add-qr-versions.sql first.\n");
 }
 
@@ -114,14 +113,15 @@ foreach ($qrCodes as $qr) {
         // Insert default version into qr_code_versions
         $versionSql = "INSERT INTO qr_code_versions
                        (qr_code_id, version_name, style_config, image_filename, is_favorite, created_at)
-                       VALUES (?, ?, ?, ?, ?, NOW())";
+                       VALUES (?, ?, ?, ?, ?, ?)";
 
-        $versionId = $db->insert($versionSql, "isssi", [
+        $versionId = $db->insert($versionSql, "isssis", [
             $qrId,
             'Default Version',
             $styleConfigJson,
             'v1.png',
-            1  // is_favorite = true
+            1,  // is_favorite = true
+            getCurrentTimestamp()
         ]);
 
         if (!$versionId) {
@@ -158,19 +158,24 @@ echo "Successfully migrated: {$migrated}\n";
 echo "Errors: {$errors}\n\n";
 
 if ($errors === 0 && $migrated > 0) {
-    echo "Adding foreign key constraint for favorite_version_id...\n";
-    try {
-        $fkSql = "ALTER TABLE qr_codes
-                  ADD CONSTRAINT fk_qr_favorite_version
-                      FOREIGN KEY (favorite_version_id)
-                      REFERENCES qr_code_versions(id)
-                      ON DELETE SET NULL";
+    // SQLite cannot add foreign key constraints after table creation
+    if ($db->getDriver() !== 'sqlite') {
+        echo "Adding foreign key constraint for favorite_version_id...\n";
+        try {
+            $fkSql = "ALTER TABLE qr_codes
+                      ADD CONSTRAINT fk_qr_favorite_version
+                          FOREIGN KEY (favorite_version_id)
+                          REFERENCES qr_code_versions(id)
+                          ON DELETE SET NULL";
 
-        $db->execute($fkSql);
-        echo "✓ Foreign key constraint added successfully\n\n";
-    } catch (Exception $e) {
-        echo "⚠ Warning: Could not add foreign key constraint (may already exist)\n";
-        echo "  Error: " . $e->getMessage() . "\n\n";
+            $db->execute($fkSql);
+            echo "✓ Foreign key constraint added successfully\n\n";
+        } catch (Exception $e) {
+            echo "⚠ Warning: Could not add foreign key constraint (may already exist)\n";
+            echo "  Error: " . $e->getMessage() . "\n\n";
+        }
+    } else {
+        echo "⚠ Skipping ALTER TABLE (not supported by SQLite)\n\n";
     }
 }
 

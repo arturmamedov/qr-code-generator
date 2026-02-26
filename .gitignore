@@ -1,5 +1,6 @@
 # Configuration files (contain sensitive data)
 config.php
+.env
 
 # Generated QR code images (old format)
 /generated/*.png
@@ -30,6 +31,11 @@ config.php
 # OS files
 .DS_Store
 Thumbs.db
+
+# SQLite database files
+/data/*.db
+/data/*.db-wal
+/data/*.db-shm
 
 # Temporary files
 *.tmp
