@@ -50,6 +50,17 @@ define('RESERVED_SLUGS', [
     'r', 'qr', 'delete', 'update', 'get'
 ]);
 
+// Supabase Auth (leave empty to use .htaccess HTTP Basic Auth instead)
+// Get these from: Supabase Dashboard → Settings → API
+define('SUPABASE_URL', env('SUPABASE_URL', ''));
+define('SUPABASE_ANON_KEY', env('SUPABASE_ANON_KEY', ''));
+define('SUPABASE_JWT_SECRET', env('SUPABASE_JWT_SECRET', ''));
+define('SUPABASE_SERVICE_ROLE_KEY', env('SUPABASE_SERVICE_ROLE_KEY', ''));
+
+// JWT validation constants (derived from SUPABASE_URL — do not set manually)
+define('JWT_AUDIENCE', 'authenticated');
+define('JWT_ISSUER', SUPABASE_URL ? rtrim(SUPABASE_URL, '/') . '/auth/v1' : '');
+
 // Timezone
 date_default_timezone_set(env('TIMEZONE', 'UTC'));
 ?>

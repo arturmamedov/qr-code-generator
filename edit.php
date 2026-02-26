@@ -8,6 +8,7 @@
  */
 
 require_once __DIR__ . '/includes/init.php';
+$currentUser = AuthMiddleware::requireAuth();
 
 // Get QR code ID from query parameter
 $qrId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -44,6 +45,7 @@ $pageTitle = 'Edit QR Code';
     <title><?php echo $pageTitle; ?> - QR Code Manager</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23667eea'/><rect x='10' y='10' width='30' height='30' fill='white'/><rect x='60' y='10' width='30' height='30' fill='white'/><rect x='10' y='60' width='30' height='30' fill='white'/></svg>">
     <link rel="stylesheet" href="assets/style.css">
+    <?php include __DIR__ . '/includes/auth-head.php'; ?>
 </head>
 
 <body>

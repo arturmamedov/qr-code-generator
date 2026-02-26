@@ -45,15 +45,24 @@ function hideModal(modalId) {
 }
 
 /**
+ * Get auth headers for API calls (adds Bearer token when Supabase auth is active)
+ */
+function getAuthHeaders(extraHeaders = {}) {
+    const headers = Object.assign({}, extraHeaders);
+    if (window.Auth && window.Auth.getToken()) {
+        headers['Authorization'] = 'Bearer ' + window.Auth.getToken();
+    }
+    return headers;
+}
+
+/**
  * Make API call
  */
 async function apiCall(action, data = {}) {
     try {
         const response = await fetch('api.php', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ action, ...data })
         });
 
@@ -438,6 +447,7 @@ async function saveQrImage(qrCodeId, versionId) {
         // Upload to server
         const response = await fetch('save-image.php', {
             method: 'POST',
+            headers: getAuthHeaders(),
             body: formData
         });
 
@@ -684,7 +694,7 @@ async function loadVersions(qrCodeId) {
         // Call versions API
         const response = await fetch('api-versions.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 action: 'get_versions',
                 qr_code_id: qrCodeId,
@@ -819,7 +829,7 @@ async function handleCreateVersion(event) {
 
         const response = await fetch('api-versions.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(requestData)
         });
 
@@ -867,7 +877,7 @@ async function handleCreateVersion(event) {
 async function getCurrentVersions(qrCodeId) {
     const response = await fetch('api-versions.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
             action: 'get_versions',
             qr_code_id: qrCodeId
@@ -884,7 +894,7 @@ async function setVersionAsFavorite(versionId) {
     try {
         const response = await fetch('api-versions.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 action: 'set_favorite',
                 version_id: versionId
@@ -970,7 +980,7 @@ async function deleteVersion(versionId) {
     try {
         const response = await fetch('api-versions.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 action: 'delete_version',
                 version_id: versionId
@@ -990,7 +1000,7 @@ async function deleteVersion(versionId) {
                     // Retry delete with new favorite
                     const retryResponse = await fetch('api-versions.php', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify({
                             action: 'delete_version',
                             version_id: versionId,
@@ -1758,7 +1768,7 @@ async function checkSlugAvailability(slug, excludeId = null) {
     try {
         const response = await fetch('api.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 action: 'check_slug_availability',
                 slug: slug.trim(),

@@ -62,14 +62,32 @@ RewriteBase /
 # ============================================
 # AUTHENTICATION: Protect admin pages
 # ============================================
+#
+# Choose ONE authentication method:
+#
+# Method 1 — Supabase Auth (Coolify/modern deployments):
+#   Comment out (or remove) the FilesMatch block below.
+#   Set SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_JWT_SECRET env vars.
+#   PHP handles auth via JWT verification in AuthMiddleware.
+#
+# Method 2 — HTTP Basic Auth (shared hosting):
+#   Keep the FilesMatch block below active. Leave SUPABASE_URL empty.
+#   Create .htpasswd: htpasswd -c .htpasswd admin
+#   Update AuthUserFile path to your absolute server path.
 
-# Require authentication for admin pages
-<FilesMatch "^(index|create|edit|api)\.php$">
-    AuthType Basic
-    AuthName "QR Code Manager - Admin Area"
-    AuthUserFile /home/user/qr-code-generator/.htpasswd
-    Require valid-user
-</FilesMatch>
+# Uncomment the block below to use HTTP Basic Auth:
+# <FilesMatch "^(index|create|edit|api|api-versions|save-image)\.php$">
+#     AuthType Basic
+#     AuthName "QR Code Manager - Admin Area"
+#     AuthUserFile /home/user/qr-code-generator/.htpasswd
+#     Require valid-user
+# </FilesMatch>
+
+# Protect auth-head.php from direct access (it's an include-only partial)
+<Files "auth-head.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
 
 # ============================================
 # CLEAN URL REWRITING
@@ -79,8 +97,9 @@ RewriteBase /
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
-# Skip rewrite for admin pages (they need direct access)
-RewriteCond %{REQUEST_URI} !^/(index|create|edit|api)\.php
+# Skip rewrite for admin pages and auth pages (they need direct access)
+RewriteCond %{REQUEST_URI} !^/(index|create|edit|api|api-versions|save-image)\.php
+RewriteCond %{REQUEST_URI} !^/auth/
 
 # Rewrite clean URLs to redirect handler
 # Example: /ABC123 or /summer-sale -> /r.php?c=ABC123 or /r.php?c=summer-sale

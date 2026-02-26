@@ -32,6 +32,9 @@ require_once __DIR__ . '/helpers.php';
 // Load version helper functions
 require_once __DIR__ . '/version-helpers.php';
 
+// Load auth middleware
+require_once __DIR__ . '/auth.php';
+
 // Set error reporting based on environment
 if (defined('ENABLE_ERROR_LOG') && ENABLE_ERROR_LOG) {
     // Log errors but don't display them

@@ -16,6 +16,7 @@
  */
 
 require_once __DIR__ . '/includes/init.php';
+AuthMiddleware::requireAuth();
 
 // Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

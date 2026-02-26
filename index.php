@@ -8,6 +8,7 @@
  */
 
 require_once __DIR__ . '/includes/init.php';
+$currentUser = AuthMiddleware::requireAuth();
 
 // Fetch all QR codes with favorite version info
 $qrCodes = $db->fetchAll(
@@ -51,6 +52,7 @@ $pageTitle = 'QR Code Manager - Dashboard';
     <title><?php echo $pageTitle; ?></title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23667eea'/><rect x='10' y='10' width='30' height='30' fill='white'/><rect x='60' y='10' width='30' height='30' fill='white'/><rect x='10' y='60' width='30' height='30' fill='white'/></svg>">
     <link rel="stylesheet" href="assets/style.css">
+    <?php include __DIR__ . '/includes/auth-head.php'; ?>
 </head>
 
 <body>
@@ -58,9 +60,14 @@ $pageTitle = 'QR Code Manager - Dashboard';
         <!-- Header -->
         <header class="header">
             <h1>🎯 QR Code Manager</h1>
-            <a href="create.php" class="btn btn-primary">
-                <span>➕</span> Create New QR Code
-            </a>
+            <div class="header-actions">
+                <a href="create.php" class="btn btn-primary">
+                    <span>➕</span> Create New QR Code
+                </a>
+                <?php if (AuthMiddleware::isEnabled()): ?>
+                    <a href="/auth/logout.php" class="btn btn-secondary btn-sm">Sign Out</a>
+                <?php endif; ?>
+            </div>
         </header>
 
         <!-- Stats Cards -->
