@@ -82,6 +82,25 @@ $redirect = htmlspecialchars($_GET['redirect'] ?? '/index.php', ENT_QUOTES, 'UTF
         'use strict';
 
         var REDIRECT_URL = '<?php echo $redirect; ?>';
+        var rawHash = window.location.hash;
+        var hashType = '';
+        var redirectDone = false;
+
+        // Check hash for type (recovery, magiclink, etc.) before SDK processes it
+        if (rawHash) {
+            var preParams = new URLSearchParams(rawHash.startsWith('#') ? rawHash.slice(1) : rawHash);
+            hashType = preParams.get('type') || '';
+        }
+
+        // Handle #error= in hash (expired links, OAuth errors)
+        if (rawHash && rawHash.indexOf('error=') !== -1 && rawHash.indexOf('access_token=') === -1) {
+            var errParams = new URLSearchParams(rawHash.startsWith('#') ? rawHash.slice(1) : rawHash);
+            var errDesc = errParams.get('error_description') || '';
+            var errMsg = errDesc ? decodeURIComponent(errDesc.replace(/\+/g, ' ')) : 'Authentication failed';
+            window.location.href = '/auth/login.php?error=' + encodeURIComponent(errMsg);
+            return;
+        }
+
         var sb = supabase.createClient(window.__SUPABASE_URL__, window.__SUPABASE_ANON_KEY__, {
             auth: {
                 flowType: 'pkce',
@@ -92,13 +111,24 @@ $redirect = htmlspecialchars($_GET['redirect'] ?? '/index.php', ENT_QUOTES, 'UTF
         });
 
         function syncAndRedirect(token) {
+            if (redirectDone) return;
+            redirectDone = true;
             document.cookie = 'sb-access-token=' + token + '; path=/; SameSite=Lax; Secure';
-            window.location.href = REDIRECT_URL;
+            // Recovery → password reset page
+            if (hashType === 'recovery') {
+                window.location.href = '/auth/reset-password.php';
+            } else {
+                window.location.href = REDIRECT_URL;
+            }
         }
 
         // Primary: SDK auto-detects PKCE ?code= or implicit #access_token= via detectSessionInUrl
         sb.auth.onAuthStateChange(function(event, session) {
-            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.access_token) {
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'PASSWORD_RECOVERY') && session && session.access_token) {
+                // PASSWORD_RECOVERY event means this is a recovery flow
+                if (event === 'PASSWORD_RECOVERY') {
+                    hashType = 'recovery';
+                }
                 syncAndRedirect(session.access_token);
             }
         });
@@ -112,8 +142,6 @@ $redirect = htmlspecialchars($_GET['redirect'] ?? '/index.php', ENT_QUOTES, 'UTF
         });
 
         // Fallback 2: explicit hash parsing in case SDK doesn't auto-detect
-        // (e.g., PKCE client receiving an implicit-flow #access_token= URL)
-        var rawHash = window.location.hash;
         if (rawHash && rawHash.indexOf('access_token=') !== -1) {
             var hashParams = new URLSearchParams(rawHash.startsWith('#') ? rawHash.slice(1) : rawHash);
             var accessToken  = hashParams.get('access_token');
@@ -130,7 +158,9 @@ $redirect = htmlspecialchars($_GET['redirect'] ?? '/index.php', ENT_QUOTES, 'UTF
 
         // Timeout fallback — redirect to login if auth doesn't complete in 10 seconds
         setTimeout(function() {
-            window.location.href = '/auth/login.php';
+            if (!redirectDone) {
+                window.location.href = '/auth/login.php';
+            }
         }, 10000);
     })();
     </script>

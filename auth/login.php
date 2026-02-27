@@ -231,8 +231,21 @@ $pageTitle = 'Sign In';
                         <label for="password">Password</label>
                         <input type="password" id="password" name="password" required placeholder="Your password" autocomplete="current-password">
                     </div>
+                    <p style="text-align:right;margin:-0.25rem 0 1rem"><a href="#" id="forgotPasswordLink" style="font-size:0.8rem;color:var(--primary-dark);text-decoration:none">Forgot password?</a></p>
                     <button type="submit" class="btn-login btn-login-primary" id="btnLogin">Sign In</button>
                 </form>
+
+                <!-- Forgot password (hidden, toggled by JS) -->
+                <div id="forgotPasswordView" style="display:none">
+                    <form id="forgotPasswordForm" class="login-form">
+                        <div class="form-group">
+                            <label for="resetEmail">Email</label>
+                            <input type="email" id="resetEmail" name="email" required placeholder="you@example.com" autocomplete="email">
+                        </div>
+                        <button type="submit" class="btn-login btn-login-primary" id="btnSendReset">Send Reset Link</button>
+                    </form>
+                    <p style="text-align:center;margin-top:0.75rem"><a href="#" id="backToLoginLink" style="font-size:0.85rem;color:var(--primary-dark);text-decoration:none">&larr; Back to sign in</a></p>
+                </div>
             </div>
 
             <!-- Magic Link Tab -->
@@ -296,20 +309,41 @@ $pageTitle = 'Sign In';
         }
 
         // ---------------------------------------------------------------
-        // Handle #access_token= in URL hash (implicit flow fallback).
-        //
-        // This happens when Supabase cannot use the PKCE emailRedirectTo
-        // URL because it isn't in the Supabase Redirect URL allow-list, so
-        // it falls back to sending the token directly in the hash fragment.
-        // Fix the root cause by adding /auth/callback.php to the Supabase
-        // Redirect URLs list — but this handler makes login.php resilient
-        // in the meantime.
+        // 0. Handle ?error= query param (forwarded from callback.php)
+        // ---------------------------------------------------------------
+        var urlParams = new URLSearchParams(window.location.search);
+        var queryError = urlParams.get('error');
+        if (queryError) {
+            showError(queryError);
+        }
+
+        // ---------------------------------------------------------------
+        // 1. Handle #error= in URL hash (expired links, OAuth errors)
         // ---------------------------------------------------------------
         var rawHash = window.location.hash;
+        if (rawHash && rawHash.indexOf('error=') !== -1 && rawHash.indexOf('access_token=') === -1) {
+            var errParams = new URLSearchParams(rawHash.startsWith('#') ? rawHash.slice(1) : rawHash);
+            var errDesc   = errParams.get('error_description');
+            if (errDesc) {
+                showError(decodeURIComponent(errDesc.replace(/\+/g, ' ')));
+            } else {
+                var errCode = errParams.get('error_code') || errParams.get('error') || '';
+                showError(errCode === 'otp_expired' ? 'This link has expired. Please request a new one.' : 'Authentication failed. Please try again.');
+            }
+            // Clean hash from URL
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // 2. Handle #access_token= in URL hash (implicit flow fallback)
+        // ---------------------------------------------------------------
         if (rawHash && rawHash.indexOf('access_token=') !== -1) {
             var hashParams = new URLSearchParams(rawHash.startsWith('#') ? rawHash.slice(1) : rawHash);
             var hashAccessToken  = hashParams.get('access_token');
             var hashRefreshToken = hashParams.get('refresh_token') || '';
+            var hashType         = hashParams.get('type') || '';
 
             if (hashAccessToken) {
                 // Replace card with a loading indicator while we exchange the token
@@ -330,7 +364,13 @@ $pageTitle = 'Sign In';
                                 '<p style="text-align:center"><a href="/auth/login.php" style="color:var(--primary-dark)">Request a new link</a></p>';
                             return;
                         }
-                        // setSession may return a refreshed token — always use the returned one
+                        // Recovery link → redirect to password reset page
+                        if (hashType === 'recovery') {
+                            document.cookie = 'sb-access-token=' + result.data.session.access_token + '; path=/; SameSite=Lax; Secure';
+                            window.location.href = '/auth/reset-password.php';
+                            return;
+                        }
+                        // Normal login → redirect to dashboard
                         syncCookieAndRedirect(result.data.session.access_token);
                     })
                     .catch(function() {
@@ -345,7 +385,7 @@ $pageTitle = 'Sign In';
         }
 
         // ---------------------------------------------------------------
-        // Normal flow: check for existing session or PKCE code in URL
+        // 3. Normal flow: check for existing session or PKCE code in URL
         // ---------------------------------------------------------------
 
         // onAuthStateChange catches PKCE code exchange completion and token refreshes
@@ -446,6 +486,54 @@ $pageTitle = 'Sign In';
                 if (result.error) {
                     showError(result.error.message);
                 }
+            });
+        });
+
+        // Forgot password — toggle between login form and reset form
+        var loginFormEl     = document.getElementById('loginForm');
+        var forgotView      = document.getElementById('forgotPasswordView');
+
+        document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            loginFormEl.style.display = 'none';
+            forgotView.style.display = 'block';
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+        });
+
+        document.getElementById('backToLoginLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            forgotView.style.display = 'none';
+            loginFormEl.style.display = 'block';
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+        });
+
+        document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var email = document.getElementById('resetEmail').value.trim();
+            var btn   = document.getElementById('btnSendReset');
+
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            errorEl.style.display = 'none';
+
+            sb.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/auth/callback.php'
+            }).then(function(result) {
+                if (result.error) {
+                    showError(result.error.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Send Reset Link';
+                    return;
+                }
+                showSuccess('Check your email for the password reset link!');
+                btn.disabled = false;
+                btn.textContent = 'Send Reset Link';
+            }).catch(function(err) {
+                showError(err.message || 'Failed to send reset link');
+                btn.disabled = false;
+                btn.textContent = 'Send Reset Link';
             });
         });
     })();
