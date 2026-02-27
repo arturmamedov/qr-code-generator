@@ -235,6 +235,10 @@ $pageTitle = 'Sign In';
                     <button type="submit" class="btn-login btn-login-primary" id="btnLogin">Sign In</button>
                 </form>
 
+                <p id="registerLinkWrapper" style="text-align:center;margin-top:0.75rem">
+                    <a href="#" id="showRegisterLink" style="font-size:0.85rem;color:var(--primary-dark);text-decoration:none">Don't have an account? Sign up</a>
+                </p>
+
                 <!-- Forgot password (hidden, toggled by JS) -->
                 <div id="forgotPasswordView" style="display:none">
                     <form id="forgotPasswordForm" class="login-form">
@@ -245,6 +249,26 @@ $pageTitle = 'Sign In';
                         <button type="submit" class="btn-login btn-login-primary" id="btnSendReset">Send Reset Link</button>
                     </form>
                     <p style="text-align:center;margin-top:0.75rem"><a href="#" id="backToLoginLink" style="font-size:0.85rem;color:var(--primary-dark);text-decoration:none">&larr; Back to sign in</a></p>
+                </div>
+
+                <!-- Register (hidden, toggled by JS) -->
+                <div id="registerView" style="display:none">
+                    <form id="registerForm" class="login-form">
+                        <div class="form-group">
+                            <label for="registerEmail">Email</label>
+                            <input type="email" id="registerEmail" name="email" required placeholder="you@example.com" autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">Password</label>
+                            <input type="password" id="registerPassword" required placeholder="Minimum 6 characters" autocomplete="new-password" minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="registerConfirmPassword">Confirm Password</label>
+                            <input type="password" id="registerConfirmPassword" required placeholder="Repeat your password" autocomplete="new-password" minlength="6">
+                        </div>
+                        <button type="submit" class="btn-login btn-login-primary" id="btnRegister">Create Account</button>
+                    </form>
+                    <p style="text-align:center;margin-top:0.75rem"><a href="#" id="backToLoginFromRegister" style="font-size:0.85rem;color:var(--primary-dark);text-decoration:none">&larr; Already have an account? Sign in</a></p>
                 </div>
             </div>
 
@@ -412,6 +436,13 @@ $pageTitle = 'Sign In';
                 document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
                 errorEl.style.display = 'none';
                 successEl.style.display = 'none';
+                // Reset password tab to login form view
+                if (registerView) {
+                    registerView.style.display = 'none';
+                    forgotView.style.display = 'none';
+                    loginFormEl.style.display = 'block';
+                    registerLinkWrap.style.display = 'block';
+                }
             });
         });
 
@@ -489,13 +520,17 @@ $pageTitle = 'Sign In';
             });
         });
 
-        // Forgot password — toggle between login form and reset form
-        var loginFormEl     = document.getElementById('loginForm');
-        var forgotView      = document.getElementById('forgotPasswordView');
+        // Password tab view management — three mutually exclusive views:
+        // login form, forgot-password form, registration form
+        var loginFormEl      = document.getElementById('loginForm');
+        var forgotView       = document.getElementById('forgotPasswordView');
+        var registerView     = document.getElementById('registerView');
+        var registerLinkWrap = document.getElementById('registerLinkWrapper');
 
         document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
             e.preventDefault();
             loginFormEl.style.display = 'none';
+            registerLinkWrap.style.display = 'none';
             forgotView.style.display = 'block';
             errorEl.style.display = 'none';
             successEl.style.display = 'none';
@@ -505,6 +540,26 @@ $pageTitle = 'Sign In';
             e.preventDefault();
             forgotView.style.display = 'none';
             loginFormEl.style.display = 'block';
+            registerLinkWrap.style.display = 'block';
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+        });
+
+        // Register — toggle between login form and registration form
+        document.getElementById('showRegisterLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            loginFormEl.style.display = 'none';
+            registerLinkWrap.style.display = 'none';
+            registerView.style.display = 'block';
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+        });
+
+        document.getElementById('backToLoginFromRegister').addEventListener('click', function(e) {
+            e.preventDefault();
+            registerView.style.display = 'none';
+            loginFormEl.style.display = 'block';
+            registerLinkWrap.style.display = 'block';
             errorEl.style.display = 'none';
             successEl.style.display = 'none';
         });
@@ -534,6 +589,56 @@ $pageTitle = 'Sign In';
                 showError(err.message || 'Failed to send reset link');
                 btn.disabled = false;
                 btn.textContent = 'Send Reset Link';
+            });
+        });
+
+        // Registration
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var email           = document.getElementById('registerEmail').value.trim();
+            var password        = document.getElementById('registerPassword').value;
+            var confirmPassword = document.getElementById('registerConfirmPassword').value;
+            var btn             = document.getElementById('btnRegister');
+
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters.');
+                return;
+            }
+            if (password !== confirmPassword) {
+                showError('Passwords do not match.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+            errorEl.style.display = 'none';
+
+            sb.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    emailRedirectTo: window.location.origin + '/auth/callback.php?redirect=' + encodeURIComponent(REDIRECT_URL)
+                }
+            }).then(function(result) {
+                if (result.error) {
+                    showError(result.error.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Create Account';
+                    return;
+                }
+                // Email confirmation required (session is null)
+                if (!result.data.session) {
+                    showSuccess('Account created! Check your email to confirm your address.');
+                    btn.disabled = false;
+                    btn.textContent = 'Create Account';
+                    return;
+                }
+                // No email confirmation — auto-login
+                syncCookieAndRedirect(result.data.session.access_token);
+            }).catch(function(err) {
+                showError(err.message || 'Registration failed');
+                btn.disabled = false;
+                btn.textContent = 'Create Account';
             });
         });
     })();
