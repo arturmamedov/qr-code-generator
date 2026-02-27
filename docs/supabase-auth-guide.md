@@ -52,16 +52,20 @@ The QR Code Manager supports **two authentication methods**:
 
 ### Step 2: Get Your API Keys
 
-Go to **Settings → API** in the Supabase dashboard. You need 4 values:
+Go to **Settings → API** in the Supabase dashboard. You need 3 values (4th is optional):
 
 | Key | Where to find | What it's for |
 |-----|---------------|---------------|
 | **Project URL** | Settings → API → Project URL | `SUPABASE_URL` |
-| **anon/public key** | Settings → API → Project API keys → `anon` `public` | `SUPABASE_ANON_KEY` |
-| **service_role key** | Settings → API → Project API keys → `service_role` `secret` | `SUPABASE_SERVICE_ROLE_KEY` |
-| **JWT Secret** | Settings → API → JWT Settings → JWT Secret | `SUPABASE_JWT_SECRET` |
+| **anon/public key** | Settings → API → Publishable API keys (or legacy `anon` key) | `SUPABASE_ANON_KEY` |
+| **service_role key** | Settings → API → Secret API keys (or legacy `service_role` key) | `SUPABASE_SERVICE_ROLE_KEY` |
+| **JWT Secret** *(optional)* | Settings → API → JWT Settings → JWT Secret | `SUPABASE_JWT_SECRET` |
 
-> **Security:** The `service_role` key and JWT Secret are sensitive. Never expose them in client-side code or commit them to git.
+> **Note on API keys:** Supabase is migrating from legacy API keys to Publishable/Secret API keys. If your dashboard shows "Publishable API keys", use those. Legacy keys still work but may be deprecated in the future.
+
+> **Note on JWT verification:** New Supabase projects (since mid-2025) use asymmetric JWT signing (RS256/ES256). The app automatically fetches public keys from Supabase's JWKS endpoint — no JWT secret needed. If your project still uses legacy HS256 signing, set `SUPABASE_JWT_SECRET` as a fallback.
+
+> **Security:** The `service_role` key and JWT Secret (if used) are sensitive. Never expose them in client-side code or commit them to git.
 
 ### Step 3: Create Your First User
 
@@ -107,11 +111,13 @@ cp .env.example .env
 Add the Supabase values:
 
 ```env
-# Supabase Auth
+# Supabase Auth (required)
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_JWT_SECRET=your-jwt-secret-from-dashboard
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Only needed for legacy HS256 projects (new projects use JWKS automatically)
+# SUPABASE_JWT_SECRET=your-jwt-secret-from-dashboard
 ```
 
 ### Option B: Using Coolify Environment Variables
@@ -122,8 +128,8 @@ In your Coolify dashboard:
 2. Add each variable:
    - `SUPABASE_URL` = `https://your-project-id.supabase.co`
    - `SUPABASE_ANON_KEY` = `eyJ...`
-   - `SUPABASE_JWT_SECRET` = `your-jwt-secret`
    - `SUPABASE_SERVICE_ROLE_KEY` = `eyJ...`
+   - `SUPABASE_JWT_SECRET` = *(only if using legacy HS256 keys)*
 3. Redeploy the application
 
 ### Option C: Using `config.php` (Shared Hosting)
@@ -133,8 +139,10 @@ Edit your `config.php` and set the values directly:
 ```php
 define('SUPABASE_URL', 'https://your-project-id.supabase.co');
 define('SUPABASE_ANON_KEY', 'eyJ...');
-define('SUPABASE_JWT_SECRET', 'your-jwt-secret');
 define('SUPABASE_SERVICE_ROLE_KEY', 'eyJ...');
+
+// Only needed for legacy HS256 projects:
+// define('SUPABASE_JWT_SECRET', 'your-jwt-secret');
 ```
 
 ### Disabling Supabase Auth
@@ -188,7 +196,7 @@ API Call:
 3. **PHP Verification**: `includes/auth.php` (AuthMiddleware class) extracts the JWT from either:
    - `Authorization: Bearer <token>` header (API calls)
    - `sb-access-token` cookie (page loads)
-   Then verifies the HS256 signature using `hash_hmac()` with `SUPABASE_JWT_SECRET`.
+   Then verifies the JWT signature. For RS256/ES256 tokens, public keys are automatically fetched from Supabase's JWKS endpoint and cached locally. For legacy HS256 tokens, uses `hash_hmac()` with `SUPABASE_JWT_SECRET`.
 
 4. **Token Refresh**: The Supabase JS SDK automatically refreshes the token before it expires. When refreshed, `auth.js` updates the cookie.
 
@@ -208,11 +216,17 @@ API Call:
 ### Zero Dependencies
 
 The PHP-side JWT verification uses only built-in PHP functions:
-- `hash_hmac('sha256', ...)` — signature verification
+- `openssl_verify()` — RS256/ES256 signature verification (JWKS)
+- `hash_hmac('sha256', ...)` — HS256 signature verification (legacy fallback)
+- `file_get_contents()` — fetching JWKS keys from Supabase
 - `base64_decode()` — JWT decoding
 - `json_decode()` — payload parsing
 
 No composer packages, no external libraries.
+
+### JWKS Key Caching
+
+Public keys from Supabase's JWKS endpoint are cached to `data/jwks-cache.json` for 1 hour to avoid fetching on every request. If the fetch fails, the expired cache is used as a fallback. The `data/` directory is protected by `.htaccess`.
 
 ---
 
@@ -245,8 +259,9 @@ Pass env vars via `docker-compose.yml` or `Dockerfile`:
 environment:
   - SUPABASE_URL=https://your-project.supabase.co
   - SUPABASE_ANON_KEY=eyJ...
-  - SUPABASE_JWT_SECRET=your-secret
   - SUPABASE_SERVICE_ROLE_KEY=eyJ...
+  # Only if using legacy HS256 keys:
+  # - SUPABASE_JWT_SECRET=your-secret
 ```
 
 ### Scenario 4: Local Development
@@ -320,7 +335,9 @@ That's it. The app automatically falls back to `.htaccess` protection.
 
 ### "Unauthorized" or redirect loop to login page
 
-- **Check JWT Secret**: Make sure `SUPABASE_JWT_SECRET` in your config matches the one in Supabase dashboard → Settings → API → JWT Settings
+- **Check JWKS connectivity**: The server needs to reach `https://<project>.supabase.co/auth/v1/.well-known/jwks.json` to fetch public keys. Check that outbound HTTPS is not blocked by a firewall.
+- **Check JWKS cache**: Look at `data/jwks-cache.json` — if it exists, keys were fetched successfully. If missing, the JWKS fetch may be failing.
+- **Check JWT Secret** (legacy HS256 only): If your project uses legacy HS256 keys, make sure `SUPABASE_JWT_SECRET` in your config matches the one in Supabase dashboard → Settings → API → JWT Settings.
 - **Check clock skew**: JWT validation checks expiry time. If your server clock is significantly off, tokens will appear expired. Run `date` on your server to verify.
 - **Check cookie domain**: If your app is on a subdomain (e.g., `qr.example.com`), ensure cookies aren't being set for the wrong domain.
 

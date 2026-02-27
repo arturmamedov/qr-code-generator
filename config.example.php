@@ -54,8 +54,12 @@ define('RESERVED_SLUGS', [
 // Get these from: Supabase Dashboard → Settings → API
 define('SUPABASE_URL', env('SUPABASE_URL', ''));
 define('SUPABASE_ANON_KEY', env('SUPABASE_ANON_KEY', ''));
-define('SUPABASE_JWT_SECRET', env('SUPABASE_JWT_SECRET', ''));
 define('SUPABASE_SERVICE_ROLE_KEY', env('SUPABASE_SERVICE_ROLE_KEY', ''));
+
+// JWT verification: JWKS (RS256/ES256) is automatic — keys are fetched from Supabase.
+// Legacy HS256 fallback: set SUPABASE_JWT_SECRET only if your project still uses legacy keys.
+// New Supabase projects use asymmetric keys (RS256) and don't need this secret.
+define('SUPABASE_JWT_SECRET', env('SUPABASE_JWT_SECRET', ''));
 
 // JWT validation constants (derived from SUPABASE_URL — do not set manually)
 define('JWT_AUDIENCE', 'authenticated');

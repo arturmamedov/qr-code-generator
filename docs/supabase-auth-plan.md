@@ -27,12 +27,17 @@ The generic guide assumes a typical setup. Here's what's different about this pr
 | Shared header/footer for injecting scripts | **Each page renders its own complete HTML** | Create a small `includes/auth-head.php` partial for the `<head>` injections |
 | Guard constant (`WEB_INIT`, `APP_INIT`) | **No guard constants exist** | Skip — `.htaccess` already blocks direct access to `includes/` |
 | RLS policies + `user_id` column | **Single-tenant admin app** — all admins manage all QR codes | Skip RLS entirely. Auth = "are you logged in?" + "are you admin?" |
-| JWKS + RS256 support | Adds 3 composer dependencies | HS256 only (Supabase default). Add RS256 later if needed. |
+| JWKS + RS256 support | Adds 3 composer dependencies | JWKS with `openssl_verify()` (PHP built-in). RS256/ES256 + HS256 fallback. Zero dependencies. |
 | `api-versions.php` and `save-image.php` currently unprotected | `.htaccess` only protects `index\|create\|edit\|api\.php` | Fix this — add auth to both endpoints |
 
-### Why HS256-only is fine
+### JWT Verification Strategy
 
-Supabase defaults to HS256 for JWT signing. The JWT secret is available in the Supabase dashboard. HS256 verification needs only PHP's built-in `hash_hmac()` — no external libraries. If Supabase migrates to RS256, we add composer support then (YAGNI).
+Supabase migrated from HS256 (symmetric) to RS256/ES256 (asymmetric) JWT signing in mid-2025. New projects default to asymmetric keys. The app supports both:
+
+1. **JWKS (RS256/ES256)** — Primary method. Public keys are fetched from Supabase's JWKS endpoint (`/auth/v1/.well-known/jwks.json`), cached to `data/jwks-cache.json` for 1 hour. Verified with PHP's built-in `openssl_verify()`.
+2. **HS256** — Legacy fallback. Uses `SUPABASE_JWT_SECRET` with `hash_hmac()`. Only used if the JWT header specifies `alg: HS256`.
+
+Zero external dependencies — both methods use PHP built-in functions.
 
 ---
 

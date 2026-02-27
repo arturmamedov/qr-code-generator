@@ -344,7 +344,7 @@ $db = Database::getInstance();
 | **Frontend** | Vanilla JavaScript | ES6+ | Client-side interactivity |
 | **CSS** | Custom CSS | CSS3 | Styling with CSS variables |
 | **QR Library** | qr-code-styling | Latest | QR code generation (client-side) |
-| **Auth** | Supabase Auth or .htaccess | — | JWT-based or HTTP Basic Auth |
+| **Auth** | Supabase Auth or .htaccess | — | JWKS (RS256/ES256) + HS256 fallback, or HTTP Basic Auth |
 | **Auth (client)** | @supabase/supabase-js | v2 (CDN) | OAuth, magic links, session management |
 
 **No Build Tools:** Files are deployed directly via FTP without transpilation or bundling.
@@ -628,7 +628,7 @@ fetch('/api.php', {
 - Active when `SUPABASE_URL` is empty
 
 **Method 2 — Supabase Auth** (Coolify/modern deployments):
-- `includes/auth.php` — `AuthMiddleware` class. Pure PHP HS256 JWT verification using `hash_hmac()`. Zero dependencies.
+- `includes/auth.php` — `AuthMiddleware` class. JWT verification via JWKS (RS256/ES256) with HS256 fallback. Uses `openssl_verify()` and `hash_hmac()`. Zero dependencies.
 - `includes/auth-head.php` — `<head>` partial that injects Supabase JS SDK and `auth.js` when enabled
 - `assets/auth.js` — Supabase client wrapper. Syncs JWT to cookie, provides `Auth.fetch()` and `Auth.getToken()`
 - `auth/login.php` — Login page (email/password, Google OAuth, magic link)
@@ -1177,8 +1177,10 @@ Edit `assets/style.css`:
    - Never commit `.htpasswd`
 
    **Option B — Supabase Auth** (Coolify/Docker):
-   - Set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET` env vars
-   - JWT verified server-side via HS256 (`AuthMiddleware` class)
+   - Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` env vars (minimum required)
+   - JWT verified server-side via JWKS (RS256/ES256) with HS256 legacy fallback
+   - JWKS public keys fetched automatically from Supabase, cached to `data/jwks-cache.json`
+   - `SUPABASE_JWT_SECRET` only needed for legacy HS256 projects
    - Never expose `SUPABASE_JWT_SECRET` or `SUPABASE_SERVICE_ROLE_KEY` client-side
    - See `docs/supabase-auth-guide.md` for full setup
 
@@ -1199,7 +1201,7 @@ Edit `assets/style.css`:
 | Path Traversal | Input validation | `helpers.php` |
 | Code Injection | Input sanitization | All form handlers |
 | Direct File Access | .htaccess rules | .htaccess |
-| JWT Forgery | HS256 signature verification | `includes/auth.php` |
+| JWT Forgery | JWKS (RS256/ES256) + HS256 signature verification | `includes/auth.php` |
 | Token Expiry | `exp` claim validation | `includes/auth.php` |
 
 **When Adding Features:**

@@ -106,8 +106,9 @@ Supabase Auth provides email/password login, Google OAuth, and magic links.
    ```env
    SUPABASE_URL=https://your-project.supabase.co
    SUPABASE_ANON_KEY=eyJ...
-   SUPABASE_JWT_SECRET=your-jwt-secret
    SUPABASE_SERVICE_ROLE_KEY=eyJ...
+   # Only needed for legacy HS256 projects:
+   # SUPABASE_JWT_SECRET=your-jwt-secret
    ```
 4. Create your first user in the Supabase dashboard → **Authentication → Users**
 5. Make sure the HTTP Basic Auth block in `.htaccess` is **commented out**
@@ -307,8 +308,10 @@ From create/edit pages:
 - Make sure the `<FilesMatch>` block is uncommented in `.htaccess`
 
 **Supabase Auth:**
-- Verify `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET` are set
-- Check that the JWT secret matches the one in Supabase dashboard → Settings → API
+- Verify `SUPABASE_URL` and `SUPABASE_ANON_KEY` are set
+- Check that the server can reach the Supabase JWKS endpoint (outbound HTTPS)
+- Check `data/jwks-cache.json` exists (confirms JWKS keys were fetched)
+- For legacy HS256: verify `SUPABASE_JWT_SECRET` matches Supabase dashboard
 - Ensure your app is served over HTTPS (cookies require `Secure` flag)
 - Check browser console for errors
 - See `docs/supabase-auth-guide.md` for detailed troubleshooting

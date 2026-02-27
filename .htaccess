@@ -67,7 +67,8 @@ RewriteBase /
 #
 # Method 1 — Supabase Auth (Coolify/modern deployments):
 #   Comment out (or remove) the FilesMatch block below.
-#   Set SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_JWT_SECRET env vars.
+#   Set SUPABASE_URL and SUPABASE_ANON_KEY env vars.
+#   JWT keys are fetched automatically from Supabase's JWKS endpoint.
 #   PHP handles auth via JWT verification in AuthMiddleware.
 #
 # Method 2 — HTTP Basic Auth (shared hosting):
