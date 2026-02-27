@@ -338,13 +338,14 @@ $db = Database::getInstance();
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
 | **Backend** | PHP | 8.0+ | Server-side logic |
-| **Database** | MySQL/MariaDB | 5.7+/10.2+ | Data persistence |
-| **Database Driver** | MySQLi | Native | DB operations with prepared statements |
+| **Database** | MySQL/MariaDB or SQLite | 5.7+/10.2+ | Data persistence |
+| **Database Driver** | PDO | Native | DB operations with prepared statements |
 | **Web Server** | Apache | 2.4+ | HTTP server with mod_rewrite |
 | **Frontend** | Vanilla JavaScript | ES6+ | Client-side interactivity |
 | **CSS** | Custom CSS | CSS3 | Styling with CSS variables |
 | **QR Library** | qr-code-styling | Latest | QR code generation (client-side) |
-| **Security** | .htaccess | Apache | HTTP Basic Auth + access control |
+| **Auth** | Supabase Auth or .htaccess | — | JWT-based or HTTP Basic Auth |
+| **Auth (client)** | @supabase/supabase-js | v2 (CDN) | OAuth, magic links, session management |
 
 **No Build Tools:** Files are deployed directly via FTP without transpilation or bundling.
 
@@ -358,42 +359,62 @@ $db = Database::getInstance();
 ├── create.php             # Create new QR code form
 ├── edit.php               # Edit existing QR code
 ├── api.php                # REST-like API endpoint (CRUD operations)
+├── api-versions.php       # Versions API endpoint
 ├── r.php                  # Public redirect handler (tracks clicks)
 ├── save-image.php         # Handle logo image uploads
 ├── diagnostic.php         # Server diagnostics tool
 │
 ├── config.php             # ⚠️ DO NOT COMMIT - Database credentials
-├── config.example.php     # Template for config.php
-├── database.sql           # Database schema
+├── config.example.php     # Template for config.php (also works as live config via env())
+├── .env                   # ⚠️ DO NOT COMMIT - Environment variables (local dev)
+├── .env.example           # Template for .env
+├── database.sql           # Database schema (MySQL)
+├── database-sqlite.sql    # Database schema (SQLite)
 ├── .htaccess              # Apache config (security + URL rewriting)
-├── .htpasswd              # ⚠️ DO NOT COMMIT - Password hashes
+├── .htpasswd              # ⚠️ DO NOT COMMIT - Password hashes (HTTP Basic Auth only)
 ├── .gitignore             # Git exclusions
 ├── README.md              # User documentation
 │
+├── /auth/                 # Supabase Auth pages (only used when Supabase is configured)
+│   ├── login.php          # Login page (email/password, Google, magic link)
+│   ├── callback.php       # OAuth/magic link redirect handler
+│   └── logout.php         # Sign out page
+│
 ├── /includes/
 │   ├── init.php           # Bootstrap file (loads everything)
-│   ├── Database.php       # Database singleton class
-│   └── helpers.php        # Utility functions
+│   ├── Database.php       # Database singleton class (PDO, MySQL + SQLite)
+│   ├── helpers.php        # Utility functions
+│   ├── version-helpers.php # Version management functions
+│   ├── env-loader.php     # Environment variable loader (env(), loadEnvFile())
+│   ├── auth.php           # AuthMiddleware class (Supabase JWT verification)
+│   └── auth-head.php      # <head> partial for Supabase JS injection
 │
 ├── /assets/
 │   ├── style.css          # Main stylesheet
-│   └── app.js             # JavaScript for all pages
+│   ├── app.js             # JavaScript for all pages
+│   └── auth.js            # Supabase client wrapper (cookie sync, Auth.fetch)
 │
 ├── /generated/            # ⚠️ Writable - Saved QR code images
-│   └── .gitkeep
+│   └── qr-code-{id}/     # Folder per QR code
+│
+├── /data/                 # ⚠️ SQLite database files (when using SQLite)
 │
 ├── /logs/                 # ⚠️ Writable - Error logs
 │   └── .gitkeep
 │
 └── /docs/
-    └── BRIEF.md           # Original project brief
+    ├── BRIEF.md                   # Original project brief
+    ├── FEATURE-QR-VERSIONS.md     # QR versions feature docs
+    ├── database-abstraction-plan.md # PDO migration plan
+    ├── supabase-auth-guide.md     # Supabase Auth setup guide
+    └── supabase-auth-plan.md      # Supabase Auth implementation plan
 ```
 
 ### Important Notes
 
-- **Never commit:** `config.php`, `.htpasswd`, generated images, logs
-- **Must be writable:** `/generated/`, `/logs/`
-- **Protected by .htaccess:** `config.php`, `database.sql`, `.git/`, `/logs/`
+- **Never commit:** `config.php`, `.htpasswd`, `.env`, generated images, logs, SQLite database files
+- **Must be writable:** `/generated/`, `/logs/`, `/data/` (SQLite only)
+- **Protected by .htaccess:** `config.php`, `config.example.php`, `.env`, `database.sql`, `.git/`, `/logs/`, `/data/`
 
 ---
 
@@ -440,10 +461,12 @@ CREATE TABLE qr_codes (
 **Purpose:** Single file to include in every PHP page to initialize the app.
 
 **What it does:**
-- Starts PHP session
-- Loads `config.php`
+- Loads `env-loader.php` and `.env` file (if present)
+- Loads `config.php` (or `config.example.php` as fallback for Coolify)
 - Loads `Database.php` class
-- Loads `helpers.php` functions
+- Loads `helpers.php` and `version-helpers.php` functions
+- Loads `auth.php` (AuthMiddleware class)
+- Validates configuration
 - Sets up error handling and logging
 - Initializes database connection
 - Creates required directories
@@ -451,12 +474,12 @@ CREATE TABLE qr_codes (
 **Usage:**
 ```php
 require_once __DIR__ . '/includes/init.php';
-// Now you have access to $db and all helper functions
+// Now you have access to $db, AuthMiddleware, and all helper functions
 ```
 
 ### 2. `/includes/Database.php` - Database Wrapper
 
-**Pattern:** Singleton with mysqli prepared statements
+**Pattern:** Singleton with PDO prepared statements (MySQL + SQLite)
 
 **Key Methods:**
 
@@ -589,11 +612,54 @@ fetch('/api.php', {
 - Real-time slug validation
 - Auto-generate random slugs
 - Form validation
-- AJAX API calls
+- AJAX API calls (with auth headers via `getAuthHeaders()`)
 - Search/filter/sort for dashboard
 - Download QR codes in multiple formats
 
 **Pattern:** Vanilla JavaScript with event delegation and modular functions.
+
+### 8. Authentication (`includes/auth.php` + `assets/auth.js`)
+
+**Two auth methods** (choose one via config):
+
+**Method 1 — HTTP Basic Auth** (shared hosting):
+- Configured in `.htaccess` with `.htpasswd`
+- Zero PHP/JS code involved — Apache handles it
+- Active when `SUPABASE_URL` is empty
+
+**Method 2 — Supabase Auth** (Coolify/modern deployments):
+- `includes/auth.php` — `AuthMiddleware` class. Pure PHP HS256 JWT verification using `hash_hmac()`. Zero dependencies.
+- `includes/auth-head.php` — `<head>` partial that injects Supabase JS SDK and `auth.js` when enabled
+- `assets/auth.js` — Supabase client wrapper. Syncs JWT to cookie, provides `Auth.fetch()` and `Auth.getToken()`
+- `auth/login.php` — Login page (email/password, Google OAuth, magic link)
+- `auth/callback.php` — OAuth/magic link redirect handler
+- `auth/logout.php` — Sign out page
+
+**Key API:**
+```php
+// Check if Supabase auth is configured
+AuthMiddleware::isEnabled();       // true/false
+
+// Require authentication (redirects to login or returns 401)
+$claims = AuthMiddleware::requireAuth();  // returns null if using .htaccess
+
+// Get current user without redirecting
+$claims = AuthMiddleware::currentUser();  // returns null if not logged in
+
+// Require specific role
+$claims = AuthMiddleware::requireRole('admin');
+```
+
+**In JavaScript:**
+```javascript
+// Get current token (null if Supabase not active)
+window.Auth && window.Auth.getToken();
+
+// All fetch() calls use getAuthHeaders() to add Bearer token
+const headers = getAuthHeaders({ 'Content-Type': 'application/json' });
+```
+
+**Detailed setup:** See `docs/supabase-auth-guide.md`
 
 ---
 
@@ -1060,6 +1126,7 @@ Edit `assets/style.css`:
 1. **NEVER commit sensitive files:**
    - `config.php` - Contains database credentials
    - `.htpasswd` - Contains password hashes
+   - `.env` - Contains environment variables (including Supabase secrets)
    - These are in `.gitignore` for a reason
 
 2. **Always use prepared statements:**
@@ -1102,10 +1169,23 @@ Edit `assets/style.css`:
    </Files>
    ```
 
-6. **Use HTTP Basic Auth for admin pages:**
+6. **Authentication — use ONE of these methods:**
+
+   **Option A — HTTP Basic Auth** (shared hosting):
    - Configured in `.htaccess`
    - Password file at `.htpasswd`
    - Never commit `.htpasswd`
+
+   **Option B — Supabase Auth** (Coolify/Docker):
+   - Set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET` env vars
+   - JWT verified server-side via HS256 (`AuthMiddleware` class)
+   - Never expose `SUPABASE_JWT_SECRET` or `SUPABASE_SERVICE_ROLE_KEY` client-side
+   - See `docs/supabase-auth-guide.md` for full setup
+
+7. **All admin pages and API endpoints must call `AuthMiddleware::requireAuth()`:**
+   - Protected: `index.php`, `create.php`, `edit.php`, `api.php`, `api-versions.php`, `save-image.php`
+   - Public: `r.php` (redirect handler — no auth needed)
+   - Auth pages: `auth/login.php`, `auth/callback.php`, `auth/logout.php` (no auth — they ARE the login flow)
 
 ### Threat Model
 
@@ -1115,10 +1195,12 @@ Edit `assets/style.css`:
 |--------|-----------|----------|
 | SQL Injection | Prepared statements | All database queries |
 | XSS | `htmlspecialchars()` | All output of user data |
-| CSRF | Admin pages behind auth | .htaccess |
+| CSRF | Admin pages behind auth | .htaccess or AuthMiddleware |
 | Path Traversal | Input validation | `helpers.php` |
 | Code Injection | Input sanitization | All form handlers |
 | Direct File Access | .htaccess rules | .htaccess |
+| JWT Forgery | HS256 signature verification | `includes/auth.php` |
+| Token Expiry | `exp` claim validation | `includes/auth.php` |
 
 **When Adding Features:**
 - Ask: "Can a malicious user inject code here?"

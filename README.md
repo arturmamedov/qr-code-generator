@@ -18,16 +18,18 @@ A self-hosted QR code management system with dynamic redirect capabilities. Crea
 - **Search & Filter**: Real-time search across titles, codes, destinations, and tags
 - **Column Sorting**: Sort QR codes by title, code, clicks, or creation date
 - **Pagination**: Navigate large datasets with smart pagination controls
-- **Secure**: Protected admin area with HTTP Basic Authentication
+- **Flexible Authentication**: Supabase Auth (email/password, Google OAuth, magic links) or HTTP Basic Auth
 - **Responsive Design**: Works perfectly on desktop, tablet, and mobile
+- **Environment Configuration**: Supports `.env` files, system env vars (Coolify/Docker), and `config.php`
+- **Database Flexibility**: MySQL/MariaDB or SQLite via PDO
 - **Error Logging**: Built-in error logging for debugging
 
 ## 📋 Requirements
 
 - **Web Server**: Apache with mod_rewrite enabled
 - **PHP**: Version 8.0 or higher
-- **Database**: MySQL 5.7+ or MariaDB 10.2+ (JSON column support required)
-- **Extensions**: MySQLi, GD (for image handling)
+- **Database**: MySQL 5.7+ / MariaDB 10.2+ or SQLite 3
+- **Extensions**: PDO (pdo_mysql or pdo_sqlite), GD (for image handling)
 - **Browser**: Modern browser with JavaScript enabled (for admin panel)
 - **Disk Space**: Adequate space for QR code images (each version ~5-50KB depending on styling)
 
@@ -92,54 +94,53 @@ mysql -u username -p database_name < database.sql
 
 ### Step 4: Set Up Authentication
 
-The admin pages are protected with HTTP Basic Authentication. You need to create a `.htpasswd` file.
+Choose **one** authentication method:
 
-#### Option A: Using htpasswd Command (Recommended)
+#### Option 1: Supabase Auth (Recommended for Coolify/Docker)
 
-```bash
-# Create .htpasswd file with first user
-htpasswd -c .htpasswd admin
+Supabase Auth provides email/password login, Google OAuth, and magic links.
 
-# Add additional users (without -c flag)
-htpasswd .htpasswd another_user
-```
+1. Create a free project at [supabase.com](https://supabase.com)
+2. Go to **Settings → API** and copy your keys
+3. Set environment variables (in `.env`, Coolify dashboard, or `config.php`):
+   ```env
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_ANON_KEY=eyJ...
+   SUPABASE_JWT_SECRET=your-jwt-secret
+   SUPABASE_SERVICE_ROLE_KEY=eyJ...
+   ```
+4. Create your first user in the Supabase dashboard → **Authentication → Users**
+5. Make sure the HTTP Basic Auth block in `.htaccess` is **commented out**
 
-#### Option B: Online Generator
+For detailed setup, see [`docs/supabase-auth-guide.md`](docs/supabase-auth-guide.md).
 
-1. Visit: https://www.web2generators.com/apache-tools/htpasswd-generator
-2. Enter your desired username and password
-3. Copy the generated line
-4. Create a file named `.htpasswd` in your root directory
-5. Paste the generated line into this file
+#### Option 2: HTTP Basic Auth (Shared Hosting)
 
-#### Option C: Using PHP (Delete After Use!)
+Traditional Apache-based authentication using `.htpasswd`.
 
-Create a temporary file `generate_htpasswd.php`:
+1. Create `.htpasswd` file:
+   ```bash
+   htpasswd -c .htpasswd admin
+   ```
 
-```php
-<?php
-$username = 'admin';
-$password = 'your_secure_password';
-$hash = crypt($password, base64_encode($password));
-file_put_contents('.htpasswd', "$username:$hash\n");
-echo "Created .htpasswd file. DELETE THIS SCRIPT NOW!";
-?>
-```
+2. Uncomment the Basic Auth block in `.htaccess`:
+   ```apache
+   <FilesMatch "^(index|create|edit|api|api-versions|save-image)\.php$">
+       AuthType Basic
+       AuthName "QR Code Manager - Admin Area"
+       AuthUserFile /absolute/path/to/.htpasswd
+       Require valid-user
+   </FilesMatch>
+   ```
 
-Run it once, then **DELETE** the script immediately!
+3. Update `AuthUserFile` with the **absolute path** to your `.htpasswd`:
+   ```php
+   <?php echo __DIR__; ?> <!-- temporary file to find your path -->
+   ```
 
-#### Update .htaccess Path
+4. Leave `SUPABASE_URL` empty in your config
 
-Edit `.htaccess` file and update line 41 with the **absolute path** to your `.htpasswd` file:
-
-```apache
-AuthUserFile /var/www/html/qr.nestshostels.com/.htpasswd
-```
-
-To find your absolute path, create a temporary PHP file:
-```php
-<?php echo __DIR__; ?>
-```
+> **Important:** Never commit `.htpasswd` to version control!
 
 ### Step 5: Set Directory Permissions
 
@@ -299,10 +300,18 @@ From create/edit pages:
 
 ### Authentication not working
 
+**HTTP Basic Auth:**
 - Verify `.htpasswd` file exists
-- Check absolute path in `.htaccess` (line 41)
+- Check absolute path in `.htaccess`
 - Ensure file permissions on `.htpasswd` (644)
-- Try regenerating `.htpasswd` file
+- Make sure the `<FilesMatch>` block is uncommented in `.htaccess`
+
+**Supabase Auth:**
+- Verify `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET` are set
+- Check that the JWT secret matches the one in Supabase dashboard → Settings → API
+- Ensure your app is served over HTTPS (cookies require `Secure` flag)
+- Check browser console for errors
+- See `docs/supabase-auth-guide.md` for detailed troubleshooting
 
 ### QR code images not saving
 
@@ -324,38 +333,47 @@ Or download via FTP and open in text editor.
 /
 ├── index.php              # Admin dashboard
 ├── create.php             # QR creation form
-├── edit.php              # QR edit form (with version gallery)
-├── api.php               # API endpoint (CRUD operations)
-├── api-versions.php      # Versions API endpoint (NEW)
-├── r.php                 # Public redirect handler
-├── save-image.php        # Image upload handler
-├── config.php            # Configuration (DO NOT COMMIT)
-├── config.example.php    # Configuration template
-├── database.sql          # Database schema (with versions support)
-├── .htaccess            # Apache configuration
-├── .htpasswd            # Authentication file (DO NOT COMMIT)
+├── edit.php               # QR edit form (with version gallery)
+├── api.php                # API endpoint (CRUD operations)
+├── api-versions.php       # Versions API endpoint
+├── r.php                  # Public redirect handler
+├── save-image.php         # Image upload handler
+├── config.php             # Configuration (DO NOT COMMIT)
+├── config.example.php     # Configuration template (also works as live config via env())
+├── .env                   # Environment variables (DO NOT COMMIT)
+├── .env.example           # Environment variables template
+├── database.sql           # Database schema (MySQL)
+├── database-sqlite.sql    # Database schema (SQLite)
+├── .htaccess              # Apache configuration
+├── .htpasswd              # Authentication file (DO NOT COMMIT, Basic Auth only)
+├── /auth/                 # Supabase Auth pages
+│   ├── login.php          # Login page (email/password, Google, magic link)
+│   ├── callback.php       # OAuth/magic link callback
+│   └── logout.php         # Sign out page
 ├── /includes/
-│   ├── Database.php      # Database class
-│   ├── helpers.php       # Helper functions
-│   ├── version-helpers.php  # Version management functions (NEW)
-│   └── init.php          # Initialization
+│   ├── init.php           # Application bootstrap
+│   ├── Database.php       # Database class (PDO, MySQL + SQLite)
+│   ├── helpers.php        # Helper functions
+│   ├── version-helpers.php # Version management functions
+│   ├── env-loader.php     # Environment variable loader
+│   ├── auth.php           # AuthMiddleware (Supabase JWT verification)
+│   └── auth-head.php      # <head> partial for Supabase JS injection
 ├── /assets/
-│   ├── style.css         # Stylesheet (Nest Hostels branding)
-│   └── app.js           # JavaScript (with version gallery)
-├── /generated/           # QR code images (writable)
-│   └── qr-code-{id}/    # Folder per QR code (NEW STRUCTURE)
-│       ├── v1.png       # Version 1 image
-│       ├── v2.png       # Version 2 image
-│       └── logos/       # Logos subfolder
-│           └── logo_v1.png
-├── /migrations/          # Database migration scripts (NEW)
+│   ├── style.css          # Stylesheet (Nest Hostels branding)
+│   ├── app.js             # JavaScript (with version gallery)
+│   └── auth.js            # Supabase client wrapper
+├── /generated/            # QR code images (writable)
+│   └── qr-code-{id}/     # Folder per QR code
+├── /migrations/           # Database migration scripts
 │   ├── 001-add-qr-versions.sql
 │   ├── 002-migrate-existing-qrs.php
 │   └── README.md
-├── /logs/               # Error logs (writable)
-└── /docs/               # Documentation
+├── /logs/                 # Error logs (writable)
+└── /docs/                 # Documentation
     ├── BRIEF.md
-    └── FEATURE-QR-VERSIONS.md
+    ├── FEATURE-QR-VERSIONS.md
+    ├── supabase-auth-guide.md     # Supabase Auth setup guide
+    └── supabase-auth-plan.md      # Supabase Auth implementation plan
 ```
 
 ## 🔐 Security Notes
@@ -451,6 +469,13 @@ Features that have been added since initial release:
 - ✅ **Top Performers Widget** - See your most-clicked QR codes
 - ✅ **Enhanced Copy Feedback** - Visual confirmation when copying URLs
 - ✅ **Nest Hostels Branding** - Custom brand colors and typography
+- ✅ **Database Abstraction (PDO)** - Support for both MySQL and SQLite
+- ✅ **Environment Variables** - `.env` file support, Coolify/Docker compatibility
+- ✅ **Supabase Auth** - Email/password, Google OAuth, and magic link authentication
+  - Pure PHP JWT verification (zero dependencies)
+  - Backward compatible — falls back to .htaccess when Supabase not configured
+  - Login page with tabbed UI (password, magic link, Google)
+  - Automatic token refresh and cookie sync
 
 ## 💡 Future Enhancement Ideas
 
