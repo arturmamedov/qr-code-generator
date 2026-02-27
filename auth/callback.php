@@ -91,23 +91,42 @@ $redirect = htmlspecialchars($_GET['redirect'] ?? '/index.php', ENT_QUOTES, 'UTF
             }
         });
 
-        // Supabase JS SDK will automatically pick up the tokens from the URL hash
+        function syncAndRedirect(token) {
+            document.cookie = 'sb-access-token=' + token + '; path=/; SameSite=Lax; Secure';
+            window.location.href = REDIRECT_URL;
+        }
+
+        // Primary: SDK auto-detects PKCE ?code= or implicit #access_token= via detectSessionInUrl
         sb.auth.onAuthStateChange(function(event, session) {
-            if (event === 'SIGNED_IN' && session && session.access_token) {
-                // Sync token to cookie for PHP
-                document.cookie = 'sb-access-token=' + session.access_token + '; path=/; SameSite=Lax; Secure';
-                window.location.href = REDIRECT_URL;
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.access_token) {
+                syncAndRedirect(session.access_token);
             }
         });
 
-        // Fallback: if session already exists (e.g., page reload)
+        // Fallback 1: existing session in localStorage (e.g., page reload)
         sb.auth.getSession().then(function(result) {
             var session = result.data && result.data.session;
             if (session && session.access_token) {
-                document.cookie = 'sb-access-token=' + session.access_token + '; path=/; SameSite=Lax; Secure';
-                window.location.href = REDIRECT_URL;
+                syncAndRedirect(session.access_token);
             }
         });
+
+        // Fallback 2: explicit hash parsing in case SDK doesn't auto-detect
+        // (e.g., PKCE client receiving an implicit-flow #access_token= URL)
+        var rawHash = window.location.hash;
+        if (rawHash && rawHash.indexOf('access_token=') !== -1) {
+            var hashParams = new URLSearchParams(rawHash.startsWith('#') ? rawHash.slice(1) : rawHash);
+            var accessToken  = hashParams.get('access_token');
+            var refreshToken = hashParams.get('refresh_token') || '';
+            if (accessToken) {
+                sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+                    .then(function(result) {
+                        if (result.data && result.data.session) {
+                            syncAndRedirect(result.data.session.access_token);
+                        }
+                    });
+            }
+        }
 
         // Timeout fallback — redirect to login if auth doesn't complete in 10 seconds
         setTimeout(function() {

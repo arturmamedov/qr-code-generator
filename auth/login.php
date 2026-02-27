@@ -295,7 +295,67 @@ $pageTitle = 'Sign In';
             window.location.href = REDIRECT_URL;
         }
 
-        // Check if already logged in
+        // ---------------------------------------------------------------
+        // Handle #access_token= in URL hash (implicit flow fallback).
+        //
+        // This happens when Supabase cannot use the PKCE emailRedirectTo
+        // URL because it isn't in the Supabase Redirect URL allow-list, so
+        // it falls back to sending the token directly in the hash fragment.
+        // Fix the root cause by adding /auth/callback.php to the Supabase
+        // Redirect URLs list — but this handler makes login.php resilient
+        // in the meantime.
+        // ---------------------------------------------------------------
+        var rawHash = window.location.hash;
+        if (rawHash && rawHash.indexOf('access_token=') !== -1) {
+            var hashParams = new URLSearchParams(rawHash.startsWith('#') ? rawHash.slice(1) : rawHash);
+            var hashAccessToken  = hashParams.get('access_token');
+            var hashRefreshToken = hashParams.get('refresh_token') || '';
+
+            if (hashAccessToken) {
+                // Replace card with a loading indicator while we exchange the token
+                var card = document.querySelector('.login-card');
+                card.innerHTML =
+                    '<h1 style="font-family:var(--font-family-headings);font-size:1.5rem;text-align:center;margin-bottom:0.5rem">QR Code Manager</h1>' +
+                    '<p style="text-align:center;color:var(--gray-500);margin-bottom:1.5rem">Signing you in\u2026</p>' +
+                    '<div id="loginError" class="login-error" style="display:none"></div>';
+                errorEl = document.getElementById('loginError');
+
+                sb.auth.setSession({ access_token: hashAccessToken, refresh_token: hashRefreshToken })
+                    .then(function(result) {
+                        if (result.error || !result.data || !result.data.session) {
+                            var msg = (result.error && result.error.message) || 'Link has expired or is invalid.';
+                            card.innerHTML =
+                                '<h1 style="font-family:var(--font-family-headings);font-size:1.5rem;text-align:center;margin-bottom:0.5rem">Link Expired</h1>' +
+                                '<p style="text-align:center;color:var(--gray-500);margin-bottom:1rem">' + msg + '</p>' +
+                                '<p style="text-align:center"><a href="/auth/login.php" style="color:var(--primary-dark)">Request a new link</a></p>';
+                            return;
+                        }
+                        // setSession may return a refreshed token — always use the returned one
+                        syncCookieAndRedirect(result.data.session.access_token);
+                    })
+                    .catch(function() {
+                        card.innerHTML =
+                            '<h1 style="font-family:var(--font-family-headings);font-size:1.5rem;text-align:center;margin-bottom:0.5rem">Sign-in Failed</h1>' +
+                            '<p style="text-align:center;color:var(--gray-500);margin-bottom:1rem">Please try again.</p>' +
+                            '<p style="text-align:center"><a href="/auth/login.php" style="color:var(--primary-dark)">Back to sign in</a></p>';
+                    });
+
+                return; // Skip normal login form setup while hash is being processed
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // Normal flow: check for existing session or PKCE code in URL
+        // ---------------------------------------------------------------
+
+        // onAuthStateChange catches PKCE code exchange completion and token refreshes
+        sb.auth.onAuthStateChange(function(event, session) {
+            if (event === 'SIGNED_IN' && session && session.access_token) {
+                syncCookieAndRedirect(session.access_token);
+            }
+        });
+
+        // getSession handles existing sessions stored in localStorage
         sb.auth.getSession().then(function(result) {
             var session = result.data && result.data.session;
             if (session && session.access_token) {
