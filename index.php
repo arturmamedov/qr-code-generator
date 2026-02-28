@@ -65,7 +65,20 @@ $pageTitle = 'QR Code Manager - Dashboard';
                     <span>➕</span> Create New QR Code
                 </a>
                 <?php if (AuthMiddleware::isEnabled()): ?>
-                    <a href="/auth/logout.php" class="btn btn-secondary btn-sm">Sign Out</a>
+                    <div class="user-menu" id="userMenu">
+                        <button type="button" class="user-menu-trigger" id="userMenuTrigger">
+                            <span class="user-avatar" id="userMenuAvatar">U</span>
+                            <span class="user-caret">&#9660;</span>
+                        </button>
+                        <div class="user-menu-dropdown">
+                            <div class="user-menu-info">
+                                <div class="user-menu-name" id="userMenuName">User</div>
+                                <div class="user-menu-email" id="userMenuEmail">Loading...</div>
+                            </div>
+                            <a href="/auth/settings.php">&#9881; Account Settings</a>
+                            <a href="/auth/logout.php" class="user-menu-danger">&#8594; Sign Out</a>
+                        </div>
+                    </div>
                 <?php endif; ?>
             </div>
         </header>

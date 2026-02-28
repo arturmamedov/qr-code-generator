@@ -45,6 +45,43 @@ function hideModal(modalId) {
 }
 
 /**
+ * User menu dropdown toggle
+ */
+function initUserMenu() {
+    var trigger = document.getElementById('userMenuTrigger');
+    var menu = document.getElementById('userMenu');
+    if (!trigger || !menu) return;
+
+    trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        menu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function() {
+        menu.classList.remove('open');
+    });
+
+    // Populate user info from Supabase
+    if (window.Auth && window.Auth.getClient) {
+        var client = window.Auth.getClient();
+        if (client) {
+            client.auth.getUser().then(function(result) {
+                if (!result.data || !result.data.user) return;
+                var user = result.data.user;
+                var nameEl = document.getElementById('userMenuName');
+                var emailEl = document.getElementById('userMenuEmail');
+                var avatarEl = document.getElementById('userMenuAvatar');
+                var name = (user.user_metadata && user.user_metadata.full_name) || '';
+                var email = user.email || '';
+                if (nameEl) nameEl.textContent = name || email.split('@')[0];
+                if (emailEl) emailEl.textContent = email;
+                if (avatarEl) avatarEl.textContent = (name || email).charAt(0).toUpperCase();
+            });
+        }
+    }
+}
+
+/**
  * Get auth headers for API calls (adds Bearer token when Supabase auth is active)
  */
 function getAuthHeaders(extraHeaders = {}) {
@@ -1989,6 +2026,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (document.querySelector('.qr-table')) {
         initDashboardPage();
     }
+
+    // User menu dropdown (dashboard header)
+    initUserMenu();
 
     // Close modals when clicking outside
     document.addEventListener('click', (e) => {
