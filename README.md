@@ -18,7 +18,10 @@ A self-hosted QR code management system with dynamic redirect capabilities. Crea
 - **Search & Filter**: Real-time search across titles, codes, destinations, and tags
 - **Column Sorting**: Sort QR codes by title, code, clicks, or creation date
 - **Pagination**: Navigate large datasets with smart pagination controls
-- **Flexible Authentication**: Supabase Auth (email/password, Google OAuth, magic links) or HTTP Basic Auth
+- **Flexible Authentication**: Supabase Auth (email/password, Google OAuth, magic links, self-registration) or HTTP Basic Auth
+- **Account Settings**: Users can update their name, email, and password from the dashboard
+- **User Dropdown Menu**: Dashboard header shows user avatar, name, email with settings and sign out
+- **Password Recovery**: Forgot password flow with email reset link
 - **Responsive Design**: Works perfectly on desktop, tablet, and mobile
 - **Environment Configuration**: Supports `.env` files, system env vars (Coolify/Docker), and `config.php`
 - **Database Flexibility**: MySQL/MariaDB or SQLite via PDO
@@ -350,9 +353,11 @@ Or download via FTP and open in text editor.
 ├── .htaccess              # Apache configuration
 ├── .htpasswd              # Authentication file (DO NOT COMMIT, Basic Auth only)
 ├── /auth/                 # Supabase Auth pages
-│   ├── login.php          # Login page (email/password, Google, magic link)
-│   ├── callback.php       # OAuth/magic link callback
-│   └── logout.php         # Sign out page
+│   ├── login.php          # Login page (email/password, Google, magic link, registration)
+│   ├── callback.php       # OAuth/magic link/recovery redirect handler
+│   ├── logout.php         # Sign out page
+│   ├── settings.php       # Account settings (name, email, password)
+│   └── reset-password.php # Password reset form (after recovery link)
 ├── /includes/
 │   ├── init.php           # Application bootstrap
 │   ├── Database.php       # Database class (PDO, MySQL + SQLite)
@@ -474,10 +479,14 @@ Features that have been added since initial release:
 - ✅ **Nest Hostels Branding** - Custom brand colors and typography
 - ✅ **Database Abstraction (PDO)** - Support for both MySQL and SQLite
 - ✅ **Environment Variables** - `.env` file support, Coolify/Docker compatibility
-- ✅ **Supabase Auth** - Email/password, Google OAuth, and magic link authentication
-  - Pure PHP JWT verification (zero dependencies)
+- ✅ **Supabase Auth** - Full authentication system with zero PHP dependencies
+  - Email/password login, Google OAuth, magic links
+  - Self-registration with email confirmation
+  - Password recovery (forgot password → email link → reset form)
+  - Account settings page (update name, email, password)
+  - User dropdown menu in dashboard header (avatar, name, settings, sign out)
+  - JWKS-based JWT verification (RS256/ES256) with HS256 legacy fallback
   - Backward compatible — falls back to .htaccess when Supabase not configured
-  - Login page with tabbed UI (password, magic link, Google)
   - Automatic token refresh and cookie sync
 
 ## 💡 Future Enhancement Ideas

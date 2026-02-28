@@ -376,9 +376,11 @@ $db = Database::getInstance();
 ├── README.md              # User documentation
 │
 ├── /auth/                 # Supabase Auth pages (only used when Supabase is configured)
-│   ├── login.php          # Login page (email/password, Google, magic link)
-│   ├── callback.php       # OAuth/magic link redirect handler
-│   └── logout.php         # Sign out page
+│   ├── login.php          # Login page (email/password, Google, magic link, registration)
+│   ├── callback.php       # OAuth/magic link/recovery redirect handler
+│   ├── logout.php         # Sign out page
+│   ├── settings.php       # Account settings (profile, email, password)
+│   └── reset-password.php # Password reset form (after recovery link)
 │
 ├── /includes/
 │   ├── init.php           # Bootstrap file (loads everything)
@@ -631,9 +633,11 @@ fetch('/api.php', {
 - `includes/auth.php` — `AuthMiddleware` class. JWT verification via JWKS (RS256/ES256) with HS256 fallback. Uses `openssl_verify()` and `hash_hmac()`. Zero dependencies.
 - `includes/auth-head.php` — `<head>` partial that injects Supabase JS SDK and `auth.js` when enabled
 - `assets/auth.js` — Supabase client wrapper. Syncs JWT to cookie, provides `Auth.fetch()` and `Auth.getToken()`
-- `auth/login.php` — Login page (email/password, Google OAuth, magic link)
-- `auth/callback.php` — OAuth/magic link redirect handler
+- `auth/login.php` — Login page (email/password, Google OAuth, magic link) + registration form + forgot password
+- `auth/callback.php` — OAuth/magic link/recovery redirect handler with error forwarding
 - `auth/logout.php` — Sign out page
+- `auth/settings.php` — Account settings (update name, email, password) via `sb.auth.updateUser()`
+- `auth/reset-password.php` — Password reset form after clicking recovery email link
 
 **Key API:**
 ```php
@@ -650,13 +654,29 @@ $claims = AuthMiddleware::currentUser();  // returns null if not logged in
 $claims = AuthMiddleware::requireRole('admin');
 ```
 
-**In JavaScript:**
+**In JavaScript (auth pages use Supabase SDK directly):**
+```javascript
+// Registration
+sb.auth.signUp({ email, password, options: { emailRedirectTo: '...' } })
+
+// Password recovery request
+sb.auth.resetPasswordForEmail(email, { redirectTo: '...' })
+
+// Update user profile/password (settings page, reset-password page)
+sb.auth.updateUser({ data: { full_name: 'Name' } })  // profile
+sb.auth.updateUser({ email: 'new@email.com' })        // email (sends confirmation)
+sb.auth.updateUser({ password: 'newPassword' })        // password
+```
+
+**In JavaScript (admin pages use Auth wrapper):**
 ```javascript
 // Get current token (null if Supabase not active)
 window.Auth && window.Auth.getToken();
 
 // All fetch() calls use getAuthHeaders() to add Bearer token
 const headers = getAuthHeaders({ 'Content-Type': 'application/json' });
+
+// User menu dropdown populates from sb.auth.getUser() in app.js
 ```
 
 **Detailed setup:** See `docs/supabase-auth-guide.md`
@@ -1185,9 +1205,9 @@ Edit `assets/style.css`:
    - See `docs/supabase-auth-guide.md` for full setup
 
 7. **All admin pages and API endpoints must call `AuthMiddleware::requireAuth()`:**
-   - Protected: `index.php`, `create.php`, `edit.php`, `api.php`, `api-versions.php`, `save-image.php`
+   - Protected: `index.php`, `create.php`, `edit.php`, `api.php`, `api-versions.php`, `save-image.php`, `auth/settings.php`
    - Public: `r.php` (redirect handler — no auth needed)
-   - Auth pages: `auth/login.php`, `auth/callback.php`, `auth/logout.php` (no auth — they ARE the login flow)
+   - Auth pages: `auth/login.php`, `auth/callback.php`, `auth/logout.php`, `auth/reset-password.php` (no admin auth — they handle their own auth flow)
 
 ### Threat Model
 
@@ -1829,9 +1849,15 @@ For questions about this codebase:
 
 ---
 
-**Last Updated:** 2025-11-22
-**Version:** 2.0
+**Last Updated:** 2026-02-28
+**Version:** 2.1
 **Maintained By:** Claude Code + Artur Mamedov
+
+**v2.1 Changes:**
+- Updated File Structure with new auth pages (settings.php, reset-password.php)
+- Updated Key Components auth section with full feature list (registration, recovery, settings, user menu)
+- Updated Security Guidelines with complete protected/public page lists
+- Added Supabase SDK method reference for registration, profile updates, password changes
 
 **v2.0 Changes:**
 - Added Development Philosophy emphasizing intentional simplicity

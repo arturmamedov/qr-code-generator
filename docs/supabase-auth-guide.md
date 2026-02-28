@@ -165,13 +165,25 @@ When `SUPABASE_URL` is empty, `AuthMiddleware::isEnabled()` returns `false` and 
 ## Authentication Methods
 
 ### Email & Password
-Standard login with email and password. Users must be created in the Supabase dashboard first.
+Standard login with email and password.
+
+### Email Registration (Sign Up)
+New users can register directly from the login page via "Don't have an account? Sign up". The registration form collects email, password, and password confirmation. If email confirmation is enabled in Supabase (default), the user receives a confirmation email. If disabled, they're logged in immediately.
 
 ### Google OAuth
 One-click Google sign-in. Requires Google OAuth setup in the Supabase dashboard (see Step 4 above).
 
 ### Magic Link
 Passwordless login via email. The user enters their email, receives a link, clicks it, and is authenticated. Good for occasional admin access.
+
+### Password Recovery
+Users can reset their password via "Forgot password?" on the login page. They enter their email, receive a recovery link, and are redirected to a password reset form (`auth/reset-password.php`).
+
+### Account Settings
+Authenticated users can update their profile from the dashboard via the user dropdown menu → "Account Settings" (`auth/settings.php`):
+- **Full Name** — Stored in Supabase `user_metadata.full_name`
+- **Email** — Sends a confirmation link to the new email address
+- **Password** — Change password (min 6 characters)
 
 ---
 
@@ -209,9 +221,11 @@ API Call:
 | `includes/auth.php` | AuthMiddleware class — pure PHP JWT verification |
 | `includes/auth-head.php` | `<head>` partial — injects Supabase JS SDK when enabled |
 | `assets/auth.js` | Client-side — session management, cookie sync, `Auth.fetch()` |
-| `auth/login.php` | Login page with email/password, Google, magic link tabs |
-| `auth/callback.php` | OAuth/magic link redirect handler |
+| `auth/login.php` | Login page with email/password, Google, magic link, registration, forgot password |
+| `auth/callback.php` | OAuth/magic link/recovery redirect handler with error forwarding |
 | `auth/logout.php` | Sign out page |
+| `auth/settings.php` | Account settings — update name, email, password |
+| `auth/reset-password.php` | Password reset form (shown after clicking recovery email link) |
 
 ### Zero Dependencies
 
@@ -277,11 +291,16 @@ environment:
 
 ### Adding Users
 
-Users are managed in the **Supabase dashboard** → **Authentication** → **Users**:
+**Option 1: Self-registration (login page)**
 
-1. Click **"Add user"** → **"Create new user"**
-2. Enter email and password
-3. Click **"Create user"**
+Users can register directly from the login page by clicking "Don't have an account? Sign up". If email confirmation is enabled in Supabase (default), they'll need to click a confirmation link in their email.
+
+**Option 2: Admin-created (Supabase dashboard)**
+
+1. Go to **Authentication → Users** in the Supabase dashboard
+2. Click **"Add user"** → **"Create new user"**
+3. Enter email and password
+4. Click **"Create user"**
 
 ### Removing Users
 
@@ -298,11 +317,12 @@ You can invite users via email:
 
 ### Restricting Access
 
-Since this is a single-tenant admin app, you typically want to restrict who can create accounts:
+Since this is a single-tenant admin app, you may want to restrict who can create accounts:
 
 1. Go to **Authentication → Settings** in Supabase dashboard
-2. Disable **"Enable sign-ups"** to prevent self-registration
+2. Disable **"Enable sign-ups"** to prevent self-registration via the login page
 3. Only admin-created users can log in
+4. The "Sign up" link on the login page will show a Supabase error if sign-ups are disabled
 
 ---
 
@@ -385,4 +405,4 @@ if (AuthMiddleware::isEnabled()) {
 
 ---
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-02-28

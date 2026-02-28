@@ -65,14 +65,14 @@ Browser                         Server (PHP)                    Supabase
   │  (or Authorization: Bearer)    │                                │
   │                                │                                │
   │                           5. PHP verifies JWT locally           │
-  │                              (HS256 + hash_hmac)                │
+  │                              (JWKS RS256/ES256 + HS256 fallback) │
   │                              Validates: sig, exp, aud, iss      │
   │                                │                                │
   │  6. Page rendered (or 401)     │                                │
   │<──────────────────────         │                                │
 ```
 
-**Key point:** JWT verification is 100% local. No network call to Supabase per request. The JWT secret is a shared secret between Supabase and our server.
+**Key point:** JWT verification is local. For JWKS (RS256/ES256), public keys are fetched once and cached for 1 hour. For legacy HS256, the JWT secret is a shared secret. No network call to Supabase per request.
 
 ### Token Delivery Strategy
 
@@ -95,9 +95,11 @@ The AuthMiddleware checks both sources.
 | `includes/auth.php` | **New** | ~160 lines. Pure PHP JWT verification, AuthMiddleware class |
 | `includes/auth-head.php` | **New** | ~7 lines. `<head>` partial for Supabase JS injection |
 | `assets/auth.js` | **New** | ~100 lines. Supabase client wrapper, cookie sync, Auth.fetch() |
-| `auth/login.php` | **New** | Login page with email/password, Google OAuth, magic link |
-| `auth/callback.php` | **New** | OAuth/magic link callback handler |
+| `auth/login.php` | **New** | Login page with email/password, Google OAuth, magic link, registration, forgot password |
+| `auth/callback.php` | **New** | OAuth/magic link/recovery redirect handler with error forwarding |
 | `auth/logout.php` | **New** | Sign out and redirect |
+| `auth/settings.php` | **New** | Account settings — update name, email, password via `sb.auth.updateUser()` |
+| `auth/reset-password.php` | **New** | Password reset form after recovery link |
 | `config.example.php` | **Edit** | Add 6 Supabase constants |
 | `.env.example` | **Edit** | Add 4 Supabase env vars |
 | `includes/init.php` | **Edit** | Add 1 line: `require_once auth.php` |
@@ -110,7 +112,10 @@ The AuthMiddleware checks both sources.
 | `assets/app.js` | **Edit** | Add `getAuthHeaders()` helper + send auth header on all 9 fetch() calls |
 | `.htaccess` | **Edit** | Comment out Basic Auth block, add auth/ access rules, protect auth-head.php |
 
-**Files that needed ZERO changes:** `r.php`, `Database.php`, `helpers.php`, `version-helpers.php`, `env-loader.php`, `database.sql`, `database-sqlite.sql`, `style.css`, `diagnostic.php`
+| `assets/style.css` | **Edit** | Add user dropdown menu CSS (`.user-menu`, `.user-menu-dropdown`) |
+| `index.php` | **Edit** | Replace Sign Out button with user dropdown menu (avatar, name, email, settings link, sign out) |
+
+**Files that needed ZERO changes:** `r.php`, `Database.php`, `helpers.php`, `version-helpers.php`, `env-loader.php`, `database.sql`, `database-sqlite.sql`, `diagnostic.php`
 
 ---
 
@@ -149,6 +154,12 @@ The AuthMiddleware checks both sources.
 6. Added `requireAuth()` to protected pages and API endpoints
 7. Modified `assets/app.js` to send Bearer tokens via `getAuthHeaders()` helper
 8. Updated `.htaccess` (commented out Basic Auth, added auth/ access rules)
+9. Rewrote `includes/auth.php` for JWKS (RS256/ES256) with HS256 fallback
+10. Fixed implicit flow handling (`#access_token=`) in `auth/login.php` and `auth/callback.php`
+11. Created `auth/reset-password.php`, added forgot password + recovery routing + hash error display
+12. Added email registration (sign-up) form to `auth/login.php`
+13. Created `auth/settings.php` (account settings: name, email, password)
+14. Added user dropdown menu to dashboard header (`index.php`, `assets/style.css`, `assets/app.js`)
 
 ---
 
